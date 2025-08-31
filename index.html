@@ -49,11 +49,6 @@
             box-shadow: 0 6px 18px rgba(0,0,0,0.15); 
         }
 
-        .btn-primary:disabled { 
-            background:#ccc; 
-            cursor:not-allowed; 
-        }
-
         .ce-item {
             background: linear-gradient(135deg, var(--ce-color), var(--ce-color-light));
             border-radius: 10px;
@@ -83,73 +78,11 @@
             font-weight: bold;
         }
 
-        .status-early { background: #FF9800; }
-        .status-night { background: #9C27B0; }
-        .status-off { background: #607D8B; }
-        .status-holiday { background: #F44336; }
-        .status-travel { background: #2196F3; }
-
-        .department-area {
-            background: rgba(255,255,255,0.85);
-            border-radius: 14px;
-            padding: 12px;
-            box-shadow: var(--shadow);
-            position: relative;
-            border-left: 4px solid var(--dept-color);
-        }
-
-        .dept-血液浄化 { --dept-color: #FFB6C1; }
-        .dept-人工心肺・補助循環 { --dept-color: #4169E1; }
-        .dept-心・カテーテル { --dept-color: #32CD32; }
-        .dept-手術・麻酔 { --dept-color: #87CEEB; }
-        .dept-不整脈 { --dept-color: #9370DB; }
-        .dept-機器管理・人工呼吸 { --dept-color: #90EE90; }
-
-        .task-item {
-            background: rgba(255,255,255,0.9);
-            border-radius: 12px;
-            padding: 10px;
-            margin: 8px 0;
-            border-left: 4px solid var(--dept-color);
-            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
-            position: relative;
-        }
-
-        .task-edit-btn {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            background: rgba(0,0,0,0.1);
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-
-        .task-item:hover .task-edit-btn {
-            opacity: 1;
-        }
-
-        .assigned-ce {
-            background: rgba(76,175,80,0.15);
-            border: 1px solid #4CAF50;
-            border-radius: 6px;
-            padding: 2px 6px;
-            margin: 2px 4px 0 0;
-            display: inline-block;
-            font-size: 11px;
-            cursor: pointer;
-        }
-
-        .assigned-ce:hover {
-            background: rgba(244,67,54,0.15);
-            border-color: #f44336;
-        }
+        .status-早 { background: #FF9800; }
+        .status-当 { background: #9C27B0; }
+        .status-非 { background: #607D8B; }
+        .status-休 { background: #F44336; }
+        .status-出 { background: #2196F3; }
 
         .sidebar {
             background: rgba(255,255,255,0.8);
@@ -215,30 +148,6 @@
             50% { opacity: 1; }
         }
 
-        .modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1500;
-        }
-
-        .modal-content {
-            background: linear-gradient(135deg, rgba(255,255,255,0.97), rgba(248,255,248,0.95));
-            margin: 4% auto;
-            padding: 24px;
-            border-radius: 16px;
-            width: 92%;
-            max-width: 720px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-        }
-
-        .ce-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(90px,1fr));
-            gap: 8px;
-        }
-
         .message {
             padding: 10px 14px;
             border-radius: 20px;
@@ -259,15 +168,8 @@
         .message.warning { background: rgba(255,193,7,0.95); color: #111; }
 
         @media print {
-            .sidebar, .message, .modal, .btn-primary, .task-edit-btn { display: none !important; }
+            .sidebar, .message { display: none !important; }
             body { background: white !important; }
-            .glassmorphism { background: white !important; border: 1px solid #ccc !important; }
-        }
-
-        @media (max-width: 768px) {
-            .sidebar { width: 0; }
-            .sidebar.expanded { width: 200px; }
-            .ce-grid { grid-template-columns: repeat(auto-fit, minmax(70px,1fr)); }
         }
     </style>
 </head>
@@ -308,7 +210,7 @@
 
                 <div id="securityCodeDiv" style="display:none;">
                     <label class="block text-sm font-medium text-gray-700 mb-2">セキュリティコード</label>
-                    <input id="securityInput" type="password" placeholder="セキュリティコード" 
+                    <input id="securityInput" type="password" placeholder="セキュリティコードを入力" 
                            class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"/>
                 </div>
 
@@ -325,501 +227,69 @@
         </div>
     </div>
 
-    <!-- メイン画面 -->
+    <!-- メイン画面（簡略版 - 動作確認用） -->
     <div id="mainInterface" style="display:none;" class="flex">
-        <!-- サイドバー -->
         <div id="sidebar" class="sidebar p-4">
             <div class="mb-3 flex justify-between items-center">
-                <button id="toggleSidebar" class="p-2 rounded-lg hover:bg-gray-200" title="サイドバー表示/非表示">
+                <button id="toggleSidebar" class="p-2 rounded-lg hover:bg-gray-200">
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="text-xs text-gray-600 sidebar-text">
                     <span id="currentUserDisplay">ユーザー</span>
                 </div>
             </div>
-
-            <div class="mb-3">
-                <div id="mainSyncStatus" class="sync-indicator connected">
-                    <div class="sync-dot pulse"></div>
-                    <span class="sidebar-text">リアルタイム同期中</span>
-                </div>
-            </div>
-
-            <nav class="space-y-2 mb-6">
-                <button id="scheduleTab" class="nav-tab w-full text-left p-3 rounded-lg hover:bg-green-100 font-medium bg-green-200">
-                    <i class="fas fa-calendar mr-2"></i><span class="sidebar-text">週間スケジュール</span>
-                </button>
-                <button id="timelineTab" class="nav-tab w-full text-left p-3 rounded-lg hover:bg-green-100 font-medium">
-                    <i class="fas fa-chart-line mr-2"></i><span class="sidebar-text">個人別タイムライン</span>
-                </button>
-                <button id="analysisTab" class="nav-tab w-full text-left p-3 rounded-lg hover:bg-green-100 font-medium">
-                    <i class="fas fa-chart-bar mr-2"></i><span class="sidebar-text">集計・分析</span>
-                </button>
-                <button id="settingsTab" class="nav-tab w-full text-left p-3 rounded-lg hover:bg-green-100 font-medium">
-                    <i class="fas fa-cog mr-2"></i><span class="sidebar-text">設定</span>
-                </button>
-            </nav>
-
-            <div class="mb-4 sidebar-text">
-                <h3 class="text-sm font-medium text-gray-700 mb-2">週予定設定</h3>
-                <div class="space-y-2">
-                    <input type="date" id="weekStartDate" class="w-full p-2 border border-gray-300 rounded-lg text-sm"/>
-                    <button id="setWeekButton" class="btn-primary w-full text-sm">日付設定</button>
-                </div>
-            </div>
-
-            <div class="sidebar-text">
-                <h3 class="text-sm font-medium text-gray-700 mb-2">テンプレート</h3>
-                <div class="space-y-2">
-                    <button id="templateSaveButton" class="w-full p-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600">
-                        <i class="fas fa-save mr-1"></i>テンプレート保存
-                    </button>
-                    <button id="templateLoadButton" class="w-full p-2 bg-blue-500 text-white rounded-lg text-sm hover:bg-blue-600">
-                        <i class="fas fa-folder-open mr-1"></i>テンプレート読込
-                    </button>
-                </div>
-                <div id="savedTemplates" class="mt-2 space-y-1 text-sm"></div>
-            </div>
-
-            <div class="mt-6 p-2 bg-yellow-50 rounded-lg sidebar-text">
-                <h4 class="text-xs font-bold text-yellow-700 mb-1">自動同期</h4>
-                <div class="text-xs text-gray-600">
-                    <div class="flex items-center">
-                        <div class="w-2 h-2 bg-green-500 rounded-full mr-1 animate-pulse"></div>
-                        <span id="syncStatusText">同期中</span>
-                    </div>
-                    <div id="lastSyncTime" class="text-xs">最終: --:--</div>
-                </div>
+            <div id="mainSyncStatus" class="sync-indicator connected">
+                <div class="sync-dot pulse"></div>
+                <span class="sidebar-text">同期中</span>
             </div>
         </div>
-
-        <!-- メインコンテンツ -->
+        
         <div class="flex-1 p-4">
-            <!-- 週間スケジュール -->
-            <div id="scheduleContent" class="screen-content">
-                <div class="mb-4 flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <h2 class="text-2xl font-bold">週間スケジュール</h2>
-                        <button class="btn-primary text-sm" onclick="window.print()">
-                            <i class="fas fa-print mr-1"></i>印刷
-                        </button>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <button id="addTaskButton" class="btn-primary">
-                            <i class="fas fa-plus mr-2"></i>業務追加
-                        </button>
-                        <div class="glassmorphism rounded-xl p-2">
-                            <div id="summaryContent" class="text-sm"></div>
-                        </div>
-                        <button id="clearTasksButton" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
-                            <i class="fas fa-trash mr-2"></i>業務クリア
-                        </button>
-                        <button id="logoutButton" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
-                            <i class="fas fa-sign-out-alt mr-2"></i>ログアウト
-                        </button>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <div class="flex space-x-1">
-                        <button class="day-tab bg-green-200" data-day="monday">月曜 <span id="mondayDate" class="text-xs"></span></button>
-                        <button class="day-tab" data-day="tuesday">火曜 <span id="tuesdayDate" class="text-xs"></span></button>
-                        <button class="day-tab" data-day="wednesday">水曜 <span id="wednesdayDate" class="text-xs"></span></button>
-                        <button class="day-tab" data-day="thursday">木曜 <span id="thursdayDate" class="text-xs"></span></button>
-                        <button class="day-tab" data-day="friday">金曜 <span id="fridayDate" class="text-xs"></span></button>
-                        <button class="day-tab" data-day="overview">全体</button>
-                    </div>
-                </div>
-
-                <div id="dayContent" class="mb-6">
-                    <div id="mondayContent" class="day-content"></div>
-                    <div id="tuesdayContent" class="day-content" style="display:none;"></div>
-                    <div id="wednesdayContent" class="day-content" style="display:none;"></div>
-                    <div id="thursdayContent" class="day-content" style="display:none;"></div>
-                    <div id="fridayContent" class="day-content" style="display:none;"></div>
-                    <div id="overviewContent" class="day-content" style="display:none;"></div>
-                </div>
-
-                <!-- CEリスト -->
-                <div class="glassmorphism rounded-2xl p-4">
-                    <div class="flex items-center justify-between">
-                        <h3 class="font-bold"><i class="fas fa-users mr-2"></i>CEリスト</h3>
-                        <div class="text-xs text-gray-500">ダブルクリックで編集</div>
-                    </div>
-                    <div id="ceListContainer" class="ce-grid mt-2"></div>
-                </div>
-            </div>
-
-            <!-- 個人別タイムライン -->
-            <div id="timelineContent" class="screen-content" style="display:none;">
-                <div class="mb-4 flex justify-between items-center">
-                    <h2 class="text-2xl font-bold">個人別タイムライン</h2>
-                    <button class="btn-primary text-sm" onclick="window.print()">
-                        <i class="fas fa-print mr-1"></i>印刷
-                    </button>
-                </div>
-                <div id="timelineContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
-            </div>
-
-            <!-- 集計・分析 -->
-            <div id="analysisContent" class="screen-content" style="display:none;">
-                <div class="mb-4 flex items-center justify-between">
-                    <h2 class="text-2xl font-bold">集計・分析</h2>
-                    <button class="btn-primary text-sm" onclick="window.print()">
-                        <i class="fas fa-print mr-1"></i>全体印刷
-                    </button>
-                </div>
-
-                <div class="space-y-6">
-                    <div class="glassmorphism rounded-2xl p-6">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-bold">配置サマリ</h3>
-                            <button class="btn-primary text-sm" onclick="printChart('placementSummaryTable')">
-                                <i class="fas fa-print mr-1"></i>印刷
-                            </button>
-                        </div>
-                        <div id="placementSummaryTable" class="mt-3"></div>
-                    </div>
-
-                    <div class="glassmorphism rounded-2xl p-6">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-bold">部門別充足率（%）</h3>
-                            <button class="btn-primary text-sm" onclick="printCanvas('departmentChart')">
-                                <i class="fas fa-print mr-1"></i>印刷
-                            </button>
-                        </div>
-                        <div class="h-72">
-                            <canvas id="departmentChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="glassmorphism rounded-2xl p-6">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-bold">個人別業務時間（時間）</h3>
-                            <button class="btn-primary text-sm" onclick="printCanvas('individualChart')">
-                                <i class="fas fa-print mr-1"></i>印刷
-                            </button>
-                        </div>
-                        <div class="h-72">
-                            <canvas id="individualChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="glassmorphism rounded-2xl p-6">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-bold">時間帯別配置人数（部門別）</h3>
-                            <button class="btn-primary text-sm" onclick="printCanvas('timeSlotChartDept')">
-                                <i class="fas fa-print mr-1"></i>印刷
-                            </button>
-                        </div>
-                        <div class="h-72">
-                            <canvas id="timeSlotChartDept"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="glassmorphism rounded-2xl p-6">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-bold">時間帯別配置人数（曜日別）</h3>
-                            <button class="btn-primary text-sm" onclick="printCanvas('timeSlotChartDay')">
-                                <i class="fas fa-print mr-1"></i>印刷
-                            </button>
-                        </div>
-                        <div class="h-72">
-                            <canvas id="timeSlotChartDay"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 設定 -->
-            <div id="settingsContent" class="screen-content" style="display:none;">
-                <h2 class="text-2xl font-bold mb-6">設定</h2>
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="glassmorphism rounded-2xl p-6">
-                        <h3 class="text-lg font-bold mb-3">システム情報</h3>
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <p>バージョン: <span class="font-bold text-green-600">Ver.1</span></p>
-                                <p>最新同期: <span id="lastSyncDisplay">--:--</span></p>
-                                <p>状態: <span class="text-green-600 font-bold">正常稼働中</span></p>
-                            </div>
-                            <div>
-                                <p>Firebase接続: <span id="firebaseConnectionStatus" class="text-green-600 font-bold">接続中</span></p>
-                                <p>ホスティング: <span class="font-bold">GitHub Pages</span></p>
-                                <p>データルート: <code>ceScheduleSystem/v1</code></p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glassmorphism rounded-2xl p-6">
-                        <h3 class="text-lg font-bold mb-3">変更履歴（最新20件）</h3>
-                        <div id="changeHistory" class="max-h-72 overflow-y-auto pr-2"></div>
-                    </div>
-
-                    <!-- 管理者メニュー -->
-                    <div id="adminMenu" class="glassmorphism rounded-2xl p-6" style="display:none;">
-                        <h3 class="text-lg font-bold mb-4">管理者メニュー</h3>
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <button id="ceManagementButton" class="btn-primary">
-                                <i class="fas fa-users-cog mr-2"></i>CEリスト管理
-                            </button>
-                            <button id="copyHtmlButton" class="btn-primary">
-                                <i class="fas fa-copy mr-2"></i>HTML全文コピー
-                            </button>
-                        </div>
-                        <div class="glassmorphism rounded-xl p-4">
-                            <h4 class="font-bold mb-2">ログイン集計</h4>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                <div>
-                                    <h5 class="font-bold mb-1">ログイン履歴</h5>
-                                    <div id="loginHistoryList" class="max-h-56 overflow-y-auto pr-2"></div>
-                                </div>
-                                <div>
-                                    <h5 class="font-bold mb-1">ユーザー別集計</h5>
-                                    <div id="loginStats" class="max-h-56 overflow-y-auto pr-2"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- モーダル: 業務追加/編集 -->
-    <div id="taskModal" class="modal">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="taskModalTitle" class="text-xl font-bold">業務追加</h2>
-                <button onclick="closeModal('taskModal')" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">業務名</label>
-                    <input type="text" id="taskName" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="業務名"/>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">部門</label>
-                    <select id="taskDepartment" class="w-full p-3 border border-gray-300 rounded-lg">
-                        <option value="血液浄化">血液浄化</option>
-                        <option value="人工心肺・補助循環">人工心肺・補助循環</option>
-                        <option value="心・カテーテル">心・カテーテル</option>
-                        <option value="手術・麻酔">手術・麻酔</option>
-                        <option value="不整脈">不整脈</option>
-                        <option value="機器管理・人工呼吸">機器管理・人工呼吸</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">開始時間</label>
-                    <input type="time" id="startTime" class="w-full p-3 border border-gray-300 rounded-lg"/>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">終了時間</label>
-                    <input type="time" id="endTime" class="w-full p-3 border border-gray-300 rounded-lg"/>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">件数</label>
-                    <input type="number" id="taskCount" min="1" value="1" class="w-full p-3 border border-gray-300 rounded-lg"/>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">必要人数</label>
-                    <input type="number" id="requiredPeople" min="1" value="1" class="w-full p-3 border border-gray-300 rounded-lg"/>
-                </div>
-            </div>
-            <div class="mt-4" id="daySelection">
-                <label class="block text-sm font-medium mb-1">追加する曜日</label>
-                <div class="flex flex-wrap gap-4 text-sm">
-                    <label class="flex items-center gap-1"><input type="checkbox" class="day-checkbox" value="monday"/>月</label>
-                    <label class="flex items-center gap-1"><input type="checkbox" class="day-checkbox" value="tuesday"/>火</label>
-                    <label class="flex items-center gap-1"><input type="checkbox" class="day-checkbox" value="wednesday"/>水</label>
-                    <label class="flex items-center gap-1"><input type="checkbox" class="day-checkbox" value="thursday"/>木</label>
-                    <label class="flex items-center gap-1"><input type="checkbox" class="day-checkbox" value="friday"/>金</label>
-                </div>
-            </div>
-            <div class="flex justify-end gap-3 mt-5">
-                <button id="taskDeleteButton" class="bg-red-500 text-white px-4 py-2 rounded-lg hidden">
-                    <i class="fas fa-trash mr-1"></i>削除
-                </button>
-                <button id="saveTaskButton" class="btn-primary">
-                    <i class="fas fa-save mr-1"></i>保存
-                </button>
-                <button class="px-4 py-2 rounded-lg border" onclick="closeModal('taskModal')">キャンセル</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- モーダル: CE編集 -->
-    <div id="ceEditModal" class="modal">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">CE編集</h2>
-                <button onclick="closeModal('ceEditModal')" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium mb-1">名前</label>
-                    <input type="text" id="editCEName" class="w-full p-3 border rounded-lg"/>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-1">勤務区分</label>
-                    <select id="editCEWorkType" class="w-full p-3 border rounded-lg">
-                        <option value="OPE">OPE</option>
-                        <option value="ME">ME</option>
-                        <option value="HD">HD</option>
-                        <option value="FLEX">FLEX</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="mt-4">
-                <label class="block text-sm font-bold mb-2">曜日ごとの状態</label>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+            <h2 class="text-2xl font-bold mb-4">ログイン成功！</h2>
+            <p class="text-gray-600 mb-4">CEスケジュール管理システム Ver.1 が正常に動作しています。</p>
+            <div class="glassmorphism rounded-2xl p-6">
+                <h3 class="text-lg font-bold mb-2">システム状況</h3>
+                <div class="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                        <label class="block">月曜</label>
-                        <select id="ceStatus_monday" class="w-full p-2 border rounded">
-                            <option value="">通常</option><option value="早">早出</option><option value="当">当直</option>
-                            <option value="非">非番</option><option value="休">休み</option><option value="出">出張</option>
-                        </select>
+                        <p>ユーザー: <span class="font-bold text-green-600" id="userDisplay"></span></p>
+                        <p>ロール: <span class="font-bold" id="roleDisplay"></span></p>
+                        <p>Firebase: <span class="font-bold text-green-600">接続中</span></p>
                     </div>
                     <div>
-                        <label class="block">火曜</label>
-                        <select id="ceStatus_tuesday" class="w-full p-2 border rounded">
-                            <option value="">通常</option><option value="早">早出</option><option value="当">当直</option>
-                            <option value="非">非番</option><option value="休">休み</option><option value="出">出張</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block">水曜</label>
-                        <select id="ceStatus_wednesday" class="w-full p-2 border rounded">
-                            <option value="">通常</option><option value="早">早出</option><option value="当">当直</option>
-                            <option value="非">非番</option><option value="休">休み</option><option value="出">出張</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block">木曜</label>
-                        <select id="ceStatus_thursday" class="w-full p-2 border rounded">
-                            <option value="">通常</option><option value="早">早出</option><option value="当">当直</option>
-                            <option value="非">非番</option><option value="休">休み</option><option value="出">出張</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block">金曜</label>
-                        <select id="ceStatus_friday" class="w-full p-2 border rounded">
-                            <option value="">通常</option><option value="早">早出</option><option value="当">当直</option>
-                            <option value="非">非番</option><option value="休">休み</option><option value="出">出張</option>
-                        </select>
+                        <p>バージョン: <span class="font-bold">Ver.1</span></p>
+                        <p>ホスティング: <span class="font-bold">GitHub Pages</span></p>
+                        <p>状態: <span class="font-bold text-green-600">正常稼働中</span></p>
                     </div>
                 </div>
             </div>
-
-            <div class="flex justify-end gap-3 mt-5">
-                <button id="saveCEButton" class="btn-primary">
-                    <i class="fas fa-save mr-1"></i>保存
-                </button>
-                <button class="px-4 py-2 rounded-lg border" onclick="closeModal('ceEditModal')">キャンセル</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- モーダル: CEリスト管理 -->
-    <div id="ceManageModal" class="modal">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">CEリスト管理</h2>
-                <button onclick="closeModal('ceManageModal')" class="text-gray-500 hover:text-gray-700">
-                    <i class="fas fa-times text-xl"></i>
-                </button>
-            </div>
-            <div class="flex gap-3 mb-3">
-                <input id="newCEName" class="flex-1 p-2 border rounded" placeholder="名前"/>
-                <select id="newCEWorkType" class="p-2 border rounded">
-                    <option value="OPE">OPE</option><option value="ME">ME</option>
-                    <option value="HD">HD</option><option value="FLEX">FLEX</option>
-                </select>
-                <button class="btn-primary" onclick="addNewCE()">
-                    <i class="fas fa-plus mr-1"></i>追加
-                </button>
-            </div>
-            <div class="text-sm text-gray-600 mb-2">ドラッグで並び替え、ゴミ箱で削除</div>
-            <ul id="ceManageList" class="space-y-2"></ul>
-            <div class="flex justify-end gap-3 mt-4">
-                <button class="btn-primary" onclick="saveCEManagement()">
-                    <i class="fas fa-save mr-1"></i>保存
-                </button>
-                <button class="px-4 py-2 rounded-lg border" onclick="closeModal('ceManageModal')">閉じる</button>
-            </div>
+            <button id="logoutButton" class="btn-primary mt-4">
+                <i class="fas fa-sign-out-alt mr-2"></i>ログアウト
+            </button>
         </div>
     </div>
 
     <script>
         // ========= Firebase 設定 =========
+        // 🔥 重要: 以下をFirebase Consoleから取得した実際の値に置き換えてください
         const firebaseConfig = {
-            // TODO: 必ずあなたの本番値に置き換えてください
             apiKey: "AIzaSyBpfRTPDFFTEkWtuvksoF_hVkftQ__wH8Q",
-            authDomain: "ce-scheduling-system.firebaseapp.com",
-            databaseURL: "https://ce-scheduling-system-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "ce-scheduling-system",
-            storageBucket: "ce-scheduling-system.appspot.com",
-            messagingSenderId: "REPLACE_WITH_REAL_SENDER_ID", // Firebase Consoleから取得
-            appId: "REPLACE_WITH_REAL_APP_ID" // Firebase Consoleから取得
-        };
+  　　　　　　authDomain: "ce-scheduling-system.firebaseapp.com",
+  　　　　　　databaseURL: "https://ce-scheduling-system-default-rtdb.asia-southeast1.firebasedatabase.app",
+　　　　　　  projectId: "ce-scheduling-system",
+  　　　　　　storageBucket: "ce-scheduling-system.firebasestorage.app",
+  　　　　　　messagingSenderId: "401096569342",
+  　　　　　　appId: "1:401096569342:web:03b0a5f5bfd09e34ae90af",
+ 　　　　　　 measurementId: "G-8C7X5WCED3"
+　　　　};
 
-        // 固定のデータルート（同期不良対策）
-        const DATA_ROOT = 'ceScheduleSystem/v1';
-
-        // ========= グローバル状態 =========
+        // ========= グローバル変数 =========
         let database = null;
         let auth = null;
         let isFirebaseReady = false;
-        let firebaseUser = null;
-
         let currentUser = null;
         let userRole = null;
-        let currentActiveDay = 'monday';
-        let weekStartDate = new Date();
 
-        let editingCEIndex = -1;
-        let editingTask = { mode: 'create', day: null, index: -1 };
-
-        // データ
-        let globalTasksData = { monday: [], tuesday: [], wednesday: [], thursday: [], friday: [] };
-        let globalAssignmentsData = { monday: {}, tuesday: {}, wednesday: {}, thursday: {}, friday: {} };
-        let CE_LIST = [
-            { name: '安孫子', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '八鍬', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '杉山', workType: 'HD', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '中村', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '石山', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '亀井', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '丸藤', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '三春', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '斎藤', workType: 'FLEX', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '田中', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '宇井', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '宇野沢', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '佐藤将志', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '庄司', workType: 'HD', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '小沼', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '設樂', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '武田', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '伊藤大晟', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '上松野', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '笹生', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '和田', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '伊藤大稀', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '佐藤千優', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '桑島', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '村田', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '小林', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '寒河江', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } }
-        ];
-
-        // ロール/コード
+        // 認証設定
         const AUTH_CREDENTIALS = {
             'スタッフ': { type: 'name', role: 'viewer' },
             '手術・麻酔': { code: 'secure_SurgAnest_6917_ce_system', role: 'editor' },
@@ -833,1339 +303,280 @@
         };
 
         // ========= 初期化 =========
-        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeSystem);
-        else initializeSystem();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeSystem);
+        } else {
+            initializeSystem();
+        }
 
         function initializeSystem() {
+            console.log('🔄 システム初期化開始');
             try {
-                initializeFirebase();
                 setupAllEventListeners();
-                tryRestoreFromLocalStorage();
+                initializeFirebase();
                 restoreLoginState();
-                setupAutoLogout();
-                setDefaultWeekMonday();
-                updateDateDisplay();
-            } catch (e) {
-                console.error(e);
-                showMessage('初期化エラーが発生しました', 'error');
+                console.log('✅ システム初期化完了');
+            } catch (error) {
+                console.error('❌ 初期化エラー:', error);
+                showMessage('システム初期化でエラーが発生しました', 'error');
             }
         }
 
-        // ========= Firebase =========
+        // ========= Firebase初期化 =========
         function initializeFirebase() {
             try {
                 updateSyncStatus('connecting', 'Firebase接続中...');
-                if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+                
+                // 設定値検証
+                if (firebaseConfig.messagingSenderId.includes('YOUR_') || firebaseConfig.appId.includes('YOUR_')) {
+                    console.warn('⚠️ Firebase設定値が未設定です');
+                    updateSyncStatus('disconnected', 'Firebase設定未完了');
+                    showMessage('Firebase設定値を更新してください', 'warning');
+                    return;
+                }
+
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                
                 database = firebase.database();
                 auth = firebase.auth();
 
-                database.ref('.info/connected').on('value', snap => {
-                    if (snap.val()) { 
-                        updateSyncStatus('connected', 'リアルタイム同期中'); 
-                        isFirebaseReady = true; 
-                        loadAllFromFirebase(); 
-                        setupRealTimeSync(); 
-                    } else { 
-                        updateSyncStatus('disconnected', '接続失敗'); 
-                        isFirebaseReady = false; 
+                // 接続監視
+                database.ref('.info/connected').on('value', function(snapshot) {
+                    if (snapshot.val() === true) {
+                        console.log('✅ Firebase接続成功');
+                        updateSyncStatus('connected', 'リアルタイム同期中');
+                        isFirebaseReady = true;
+                    } else {
+                        console.log('❌ Firebase接続失敗');
+                        updateSyncStatus('disconnected', '接続失敗');
+                        isFirebaseReady = false;
                     }
                 });
 
-                auth.signInAnonymously().then(cred => {
-                    firebaseUser = cred.user;
-                    document.getElementById('firebaseConnectionStatus').textContent = '接続中';
-                }).catch(err => {
-                    console.error('匿名認証エラー:', err);
-                    document.getElementById('firebaseConnectionStatus').textContent = '認証失敗';
-                    showMessage('Firebase匿名認証で問題が発生しました', 'warning');
-                });
-            } catch (e) {
-                console.error('Firebase初期化失敗:', e);
-                updateSyncStatus('error', '初期化失敗');
+                // 匿名認証
+                auth.signInAnonymously()
+                    .then(() => {
+                        console.log('✅ Firebase匿名認証成功');
+                    })
+                    .catch((error) => {
+                        console.error('❌ Firebase認証エラー:', error);
+                        updateSyncStatus('disconnected', '認証失敗');
+                        showMessage('Firebase認証に失敗しました', 'error');
+                    });
+
+            } catch (error) {
+                console.error('❌ Firebase初期化エラー:', error);
+                updateSyncStatus('disconnected', '初期化失敗');
+                showMessage('Firebase初期化に失敗しました', 'error');
             }
         }
 
-        function updateSyncStatus(status, message) {
-            const syncStatus = document.getElementById('syncStatus');
-            const mainSyncStatus = document.getElementById('mainSyncStatus');
-            const txt = document.getElementById('syncStatusText');
-            const cls = {
-                connecting: 'sync-indicator connecting', 
-                connected: 'sync-indicator connected', 
-                disconnected: 'sync-indicator disconnected', 
-                error: 'sync-indicator disconnected'
-            };
-            if (syncStatus) { 
-                syncStatus.className = cls[status] || cls.disconnected; 
-                syncStatus.innerHTML = `<div class="sync-dot ${status === 'connected' ? 'pulse' : ''}"></div>${message}`; 
-            }
-            if (mainSyncStatus) { 
-                mainSyncStatus.className = cls[status] || cls.disconnected; 
-                mainSyncStatus.innerHTML = `<div class="sync-dot ${status === 'connected' ? 'pulse' : ''}"></div><span class="sidebar-text">${message}</span>`; 
-            }
-            if (txt) txt.textContent = message;
-        }
-
-        // ========= ログイン状態保持（24h）＋ 自動ログアウト =========
-        function restoreLoginState() {
-            try {
-                const saved = localStorage.getItem('ceSystemLoggedInUser');
-                const exp = parseInt(localStorage.getItem('ceSystemLoginExpiry') || '0', 10);
-                if (saved && Date.now() < exp) {
-                    const o = JSON.parse(saved);
-                    currentUser = o.id; 
-                    userRole = o.role;
-                    showMainInterface();
-                    if (isFirebaseReady) loadAllFromFirebase();
-                } else {
-                    document.getElementById('loginScreen').style.display = 'flex';
-                    document.getElementById('mainInterface').style.display = 'none';
-                }
-            } catch { /* noop */ }
-        }
-
-        function setupAutoLogout() {
-            let t; 
-            const LIMIT = 8 * 60 * 60 * 1000;
-            const reset = () => { 
-                clearTimeout(t); 
-                t = setTimeout(() => { 
-                    if (currentUser) { 
-                        handleLogout(true); 
-                        showMessage('無操作のため自動ログアウトしました', 'info'); 
-                    } 
-                }, LIMIT); 
-            };
-            ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(ev => 
-                document.addEventListener(ev, reset, true)
-            );
-            reset();
-        }
-
-        // ========= イベント =========
+        // ========= イベントリスナー設定 =========
         function setupAllEventListeners() {
-            // ログインUI
+            // ユーザーID変更
             document.getElementById('userId').addEventListener('change', handleUserIdChange);
+            document.getElementById('userId').addEventListener('input', handleUserIdChange);
+            
+            // ログイン
             document.getElementById('loginButton').addEventListener('click', handleLogin);
-            document.getElementById('securityInput').addEventListener('keypress', e => { if (e.key === 'Enter') handleLogin(); });
-            document.getElementById('nameInput').addEventListener('keypress', e => { if (e.key === 'Enter') handleLogin(); });
+            document.getElementById('securityInput').addEventListener('keypress', e => { 
+                if (e.key === 'Enter') handleLogin(); 
+            });
+            document.getElementById('nameInput').addEventListener('keypress', e => { 
+                if (e.key === 'Enter') handleLogin(); 
+            });
 
-            // サイドバー切替
+            // サイドバー
             document.getElementById('toggleSidebar').addEventListener('click', () => {
                 document.getElementById('sidebar').classList.toggle('expanded');
             });
 
-            // ナビゲーション
-            document.getElementById('scheduleTab').addEventListener('click', () => showScreen('scheduleContent', 'scheduleTab'));
-            document.getElementById('timelineTab').addEventListener('click', () => showScreen('timelineContent', 'timelineTab'));
-            document.getElementById('analysisTab').addEventListener('click', () => showScreen('analysisContent', 'analysisTab'));
-            document.getElementById('settingsTab').addEventListener('click', () => showScreen('settingsContent', 'settingsTab'));
-
-            // スケジュール系
-            document.getElementById('addTaskButton').addEventListener('click', () => openTaskModal('create'));
-            document.getElementById('clearTasksButton').addEventListener('click', clearAllTasks);
-            document.getElementById('logoutButton').addEventListener('click', () => handleLogout(false));
-            document.getElementById('saveTaskButton').addEventListener('click', saveTaskFromModal);
-            document.getElementById('taskDeleteButton').addEventListener('click', deleteTaskFromModal);
-
-            // 曜日タブ
-            document.querySelectorAll('.day-tab').forEach(btn => {
-                btn.addEventListener('click', () => { switchDay(btn.getAttribute('data-day')); });
-            });
-
-            // 週開始日
-            document.getElementById('setWeekButton').addEventListener('click', setWeekStartDate);
-
-            // テンプレート
-            document.getElementById('templateSaveButton').addEventListener('click', saveTemplate);
-            document.getElementById('templateLoadButton').addEventListener('click', showTemplateList);
-
-            // 管理者メニュー
-            document.getElementById('ceManagementButton').addEventListener('click', openCEManagement);
-            document.getElementById('copyHtmlButton').addEventListener('click', copyFullHtml);
-
-            // CE編集
-            document.getElementById('saveCEButton').addEventListener('click', saveCEFromModal);
+            // ログアウト
+            document.getElementById('logoutButton').addEventListener('click', handleLogout);
         }
 
         // ========= ログイン処理 =========
         function handleUserIdChange() {
-            const v = document.getElementById('userId').value;
+            const userId = document.getElementById('userId').value;
             const nameDiv = document.getElementById('nameInputDiv');
             const secDiv = document.getElementById('securityCodeDiv');
-            if (v === 'スタッフ') { 
-                nameDiv.style.display = 'block'; 
-                secDiv.style.display = 'none'; 
-            } else if (v) { 
-                nameDiv.style.display = 'none'; 
-                secDiv.style.display = 'block'; 
-            } else { 
-                nameDiv.style.display = 'none'; 
-                secDiv.style.display = 'none'; 
+            
+            if (userId === 'スタッフ') {
+                nameDiv.style.display = 'block';
+                secDiv.style.display = 'none';
+            } else if (userId) {
+                nameDiv.style.display = 'none';
+                secDiv.style.display = 'block';
+            } else {
+                nameDiv.style.display = 'none';
+                secDiv.style.display = 'none';
             }
         }
 
         function handleLogin() {
             const userId = document.getElementById('userId').value;
-            const name = document.getElementById('nameInput').value.trim();
-            const code = document.getElementById('securityInput').value;
-            if (!userId) return showMessage('ユーザーを選択してください', 'warning');
-            const credential = AUTH_CREDENTIALS[userId];
-            if (!credential) return showMessage('無効なユーザーです', 'error');
+            const nameInput = document.getElementById('nameInput').value.trim();
+            const securityInput = document.getElementById('securityInput').value;
 
-            let ok = false; 
-            let displayName = userId;
-            if (credential.type === 'name') {
-                if (!name) return showMessage('お名前を入力してください', 'warning');
-                ok = true; 
-                displayName = name;
-            } else {
-                ok = code === credential.code;
+            if (!userId) {
+                showMessage('ユーザーを選択してください', 'warning');
+                return;
             }
 
-            if (!ok) return showMessage('認証に失敗しました', 'error');
+            const credential = AUTH_CREDENTIALS[userId];
+            if (!credential) {
+                showMessage('無効なユーザーです', 'error');
+                return;
+            }
 
-            userRole = credential.role; 
-            currentUser = displayName;
-            // 24hログイン保存
-            const exp = Date.now() + 24 * 60 * 60 * 1000;
-            localStorage.setItem('ceSystemLoggedInUser', JSON.stringify({ id: currentUser, role: userRole, loginTime: new Date().toISOString() }));
-            localStorage.setItem('ceSystemLoginExpiry', String(exp));
-            showMainInterface();
-            recordEditHistory('ログイン', `${userId}として入室`);
-            recordLoginEvent('login');
-            if (isFirebaseReady) loadAllFromFirebase();
+            let isValid = false;
+            let displayName = userId;
+            
+            if (credential.type === 'name') {
+                if (!nameInput) {
+                    showMessage('お名前を入力してください', 'warning');
+                    return;
+                }
+                isValid = true;
+                displayName = nameInput;
+            } else {
+                if (!securityInput) {
+                    showMessage('セキュリティコードを入力してください', 'warning');
+                    return;
+                }
+                isValid = securityInput === credential.code;
+            }
+
+            if (isValid) {
+                userRole = credential.role;
+                currentUser = displayName;
+                
+                // ログイン状態保存（24時間有効）
+                const loginExpiry = Date.now() + (24 * 60 * 60 * 1000);
+                localStorage.setItem('ceSystemLoggedInUser', JSON.stringify({
+                    id: currentUser,
+                    role: userRole,
+                    loginTime: new Date().toISOString()
+                }));
+                localStorage.setItem('ceSystemLoginExpiry', loginExpiry.toString());
+                
+                showMainInterface();
+                showMessage(`${userId}としてログインしました`, 'success');
+            } else {
+                showMessage('認証に失敗しました', 'error');
+            }
         }
 
-        function handleLogout(auto = false) {
-            recordLoginEvent('logout');
-            recordEditHistory('ログアウト', auto ? '自動ログアウト' : '手動ログアウト');
-            currentUser = null; 
-            userRole = null;
-            localStorage.removeItem('ceSystemLoggedInUser'); 
-            localStorage.removeItem('ceSystemLoginExpiry');
-            document.getElementById('mainInterface').style.display = 'none';
-            document.getElementById('loginScreen').style.display = 'flex';
-            document.getElementById('userId').value = ''; 
-            document.getElementById('nameInput').value = ''; 
-            document.getElementById('securityInput').value = '';
-            handleUserIdChange();
+        function handleLogout() {
+            if (confirm('ログアウトしてもよろしいですか？')) {
+                currentUser = null;
+                userRole = null;
+                
+                localStorage.removeItem('ceSystemLoggedInUser');
+                localStorage.removeItem('ceSystemLoginExpiry');
+                
+                document.getElementById('mainInterface').style.display = 'none';
+                document.getElementById('loginScreen').style.display = 'flex';
+                
+                // フォームリセット
+                document.getElementById('userId').value = '';
+                document.getElementById('nameInput').value = '';
+                document.getElementById('securityInput').value = '';
+                handleUserIdChange();
+                
+                showMessage('ログアウトしました', 'info');
+            }
+        }
+
+        function restoreLoginState() {
+            try {
+                const savedUser = localStorage.getItem('ceSystemLoggedInUser');
+                const loginExpiry = localStorage.getItem('ceSystemLoginExpiry');
+                
+                if (savedUser && loginExpiry) {
+                    const currentTime = Date.now();
+                    const expiryTime = parseInt(loginExpiry);
+                    
+                    if (currentTime < expiryTime) {
+                        const parsedUser = JSON.parse(savedUser);
+                        currentUser = parsedUser.id;
+                        userRole = parsedUser.role;
+                        showMainInterface();
+                        showMessage(`お疲れ様です、${currentUser}さん！`, 'info');
+                        return;
+                    } else {
+                        localStorage.removeItem('ceSystemLoggedInUser');
+                        localStorage.removeItem('ceSystemLoginExpiry');
+                    }
+                }
+                
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('mainInterface').style.display = 'none';
+            } catch (error) {
+                console.error('❌ ログイン状態復元エラー:', error);
+                document.getElementById('loginScreen').style.display = 'flex';
+                document.getElementById('mainInterface').style.display = 'none';
+            }
         }
 
         function showMainInterface() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainInterface').style.display = 'flex';
+            
             document.getElementById('currentUserDisplay').textContent = currentUser;
-            document.getElementById('adminMenu').style.display = (userRole === 'admin') ? 'block' : 'none';
-            displayCEList(); 
-            updateDateDisplay(); 
-            setupPermissions(); 
-            showScreen('scheduleContent', 'scheduleTab'); 
-            updatePlacementSummary(); 
-            renderDaySections(); 
-            loadChangeHistory(); 
-            loadLoginStats();
+            document.getElementById('userDisplay').textContent = currentUser;
+            document.getElementById('roleDisplay').textContent = userRole;
         }
 
-        function setupPermissions() {
-            const canEdit = ['editor', 'monitor', 'admin'].includes(userRole);
-            document.getElementById('addTaskButton').style.display = canEdit ? 'inline-flex' : 'none';
-            document.getElementById('clearTasksButton').style.display = canEdit ? 'inline-flex' : 'none';
-        }
-
-        // ========= 週開始日 / 曜日切替 =========
-        function setDefaultWeekMonday() {
-            const today = new Date();
-            const dow = today.getDay(); 
-            const sub = dow === 0 ? 6 : dow - 1; 
-            today.setDate(today.getDate() - sub);
-            weekStartDate = today;
-            document.getElementById('weekStartDate').value = weekStartDate.toISOString().split('T')[0];
-        }
-
-        function setWeekStartDate() {
-            const v = document.getElementById('weekStartDate').value;
-            const d = new Date(v); 
-            if (isNaN(d)) return showMessage('有効な日付を選択してください', 'warning');
-            weekStartDate = d; 
-            updateDateDisplay(); 
-            showMessage('週開始日を更新しました', 'success');
-        }
-
-        function updateDateDisplay() {
-            const ids = ['mondayDate', 'tuesdayDate', 'wednesdayDate', 'thursdayDate', 'fridayDate'];
-            ids.forEach((id, idx) => {
-                const dd = new Date(weekStartDate); 
-                dd.setDate(weekStartDate.getDate() + idx);
-                const el = document.getElementById(id); 
-                if (el) el.textContent = `(${dd.getMonth() + 1}/${dd.getDate()})`;
-            });
-        }
-
-        function switchDay(day) {
-            currentActiveDay = day;
-            document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('bg-green-200'));
-            const act = document.querySelector(`.day-tab[data-day="${day}"]`); 
-            if (act) act.classList.add('bg-green-200');
-            document.querySelectorAll('.day-content').forEach(x => x.style.display = 'none');
-            if (day === 'overview') document.getElementById('overviewContent').style.display = 'block'; 
-            else document.getElementById(`${day}Content`).style.display = 'block';
-            renderDaySections(); 
-            displayCEList(); 
-            updatePlacementSummary();
-        }
-
-        // ========= 画面切替 =========
-        function showScreen(contentId, tabId) {
-            document.querySelectorAll('.screen-content').forEach(s => s.style.display = 'none');
-            document.getElementById(contentId).style.display = 'block';
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('bg-green-200'));
-            document.getElementById(tabId).classList.add('bg-green-200');
-            if (contentId === 'timelineContent') generateTimeline();
-            if (contentId === 'analysisContent') generateAnalysis();
-            if (contentId === 'settingsContent') { loadChangeHistory(); loadLoginStats(); }
-        }
-
-        // ========= CEリスト表示（曜日状態バッジ） =========
-        function statusBadge(day, name) {
-            const ce = CE_LIST.find(c => c.name === name);
-            if (!ce || !ce.status) return '';
-            const status = ce.status[day] || '';
-            if (!status) return '';
-            const classes = { '早': 'status-early', '当': 'status-night', '非': 'status-off', '休': 'status-holiday', '出': 'status-travel' };
-            const cls = classes[status] || 'status-badge';
-            return `<span class="status-badge ${cls}">${status}</span>`;
-        }
-
-        function displayCEList() {
-            const c = document.getElementById('ceListContainer'); 
-            if (!c) return;
-            c.innerHTML = '';
-            CE_LIST.forEach((ce, idx) => {
-                const el = document.createElement('div');
-                el.className = `ce-item worktype-${ce.workType.toLowerCase()}`;
-                el.innerHTML = `${ce.name} ${statusBadge(currentActiveDay, ce.name)}`;
-                el.draggable = userRole !== 'viewer';
-                el.dataset.ceIndex = idx; 
-                el.dataset.ceName = ce.name; 
-                el.dataset.workType = ce.workType;
-                el.addEventListener('dblclick', () => openCEEdit(ce.name, idx));
-                if (userRole !== 'viewer') {
-                    el.addEventListener('dragstart', e => {
-                        e.dataTransfer.setData('text/plain', JSON.stringify({ ceName: ce.name, ceIndex: idx }));
-                    });
-                }
-                c.appendChild(el);
-            });
-        }
-
-        // ========= 曜日セクション描画（全体タブ含む） =========
-        function renderDaySections() {
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-            const dayLabels = { monday: '月曜', tuesday: '火曜', wednesday: '水曜', thursday: '木曜', friday: '金曜' };
-            const departments = ['機器管理・人工呼吸', '血液浄化', '不整脈', '心・カテーテル', '人工心肺・補助循環', '手術・麻酔'];
-
-            // 各曜日
-            days.forEach(day => {
-                const wrap = document.getElementById(`${day}Content`); 
-                if (!wrap) return; 
-                wrap.innerHTML = '';
-                const grid = document.createElement('div');
-                grid.className = 'grid grid-cols-1 md:grid-cols-3 gap-4';
-                departments.forEach(dept => {
-                    const area = document.createElement('div'); 
-                    area.className = `department-area dept-${dept}`;
-                    area.innerHTML = `<h3 class="font-bold mb-2">${dept}</h3><div id="${day}-${dept}" class="task-container"></div>`;
-                    grid.appendChild(area);
-                });
-                wrap.appendChild(grid);
-            });
-
-            // 全体（他の曜日と同デザインで各曜日ブロック表示）
-            const ov = document.getElementById('overviewContent');
-            if (ov) {
-                ov.innerHTML = '';
-                const grid = document.createElement('div'); 
-                grid.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
-                days.forEach(day => {
-                    const card = document.createElement('div'); 
-                    card.className = 'glassmorphism rounded-2xl p-4';
-                    card.innerHTML = `<div class="flex justify-between items-center mb-2"><h4 class="font-bold">${dayLabels[day]}</h4><span class="text-xs text-gray-500" id="${day}-sum"></span></div><div id="${day}-overview" class="grid grid-cols-1 gap-3"></div>`;
-                    grid.appendChild(card);
-                });
-                ov.appendChild(grid);
-            }
-
-            updateTaskDisplay();
-        }
-
-        // ========= 業務表示 & 編集UI =========
-        function getDepartmentColor(dept) {
-            const colors = { '血液浄化': '#FFB6C1', '人工心肺・補助循環': '#4169E1', '心・カテーテル': '#32CD32', '手術・麻酔': '#87CEEB', '不整脈': '#9370DB', '機器管理・人工呼吸': '#90EE90' };
-            return colors[dept] || '#ccc';
-        }
-
-        function updateTaskDisplay() {
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-            const departments = ['機器管理・人工呼吸', '血液浄化', '不整脈', '心・カテーテル', '人工心肺・補助循環', '手術・麻酔'];
-
-            // クリア
-            days.forEach(day => {
-                departments.forEach(dept => {
-                    const container = document.getElementById(`${day}-${dept}`);
-                    if (container) container.innerHTML = '';
-                });
-            });
-
-            // 配置
-            days.forEach(day => {
-                const tasks = globalTasksData[day] || [];
-                const assigns = globalAssignmentsData[day] || {};
-                tasks.forEach((task, idx) => {
-                    const cont = document.getElementById(`${day}-${task.department}`);
-                    if (!cont) return;
-                    const el = document.createElement('div');
-                    el.className = 'task-item';
-                    el.style.setProperty('--dept-color', getDepartmentColor(task.department));
-                    const assignedCEs = (assigns[idx] || []);
-                    const ceHtml = assignedCEs.map(n => `<span class="assigned-ce" onclick="removeCEAssignment('${day}', ${idx}, '${n}')">${n} ×</span>`).join('');
-                    // 編集メニュー
-                    const editBtn = (userRole !== 'viewer') ? `<button class="task-edit-btn" onclick="openTaskModal('edit','${day}',${idx})"><i class="fas fa-edit"></i></button>` : '';
-
-                    el.innerHTML = `
-                        <div class="flex justify-between items-center">
-                            <div class="task-header font-bold">${task.name}</div>
-                            ${editBtn}
-                        </div>
-                        <div class="text-sm text-gray-600">${task.startTime} - ${task.endTime} | ${task.count}件 | 必要${task.requiredPeople}名</div>
-                        <div class="assigned-ces mt-2">${ceHtml}</div>
-                    `;
-
-                    if (userRole !== 'viewer') {
-                        el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('bg-green-50'); });
-                        el.addEventListener('dragleave', () => el.classList.remove('bg-green-50'));
-                        el.addEventListener('drop', e => {
-                            e.preventDefault(); 
-                            el.classList.remove('bg-green-50');
-                            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-                            assignCEToTask(day, idx, data.ceName);
-                        });
-                    }
-
-                    cont.appendChild(el);
-                });
-
-                // 概要カードに同じ情報
-                const ovWrap = document.getElementById(`${day}-overview`);
-                const sumEl = document.getElementById(`${day}-sum`);
-                if (ovWrap) {
-                    ovWrap.innerHTML = '';
-                    let totalReq = 0, totalAsg = 0;
-                    tasks.forEach((task, index) => {
-                        totalReq += task.requiredPeople;
-                        const asg = (assigns[index] || []);
-                        totalAsg += asg.length;
-                        const card = document.createElement('div');
-                        card.className = 'department-area';
-                        card.style.setProperty('--dept-color', getDepartmentColor(task.department));
-                        card.innerHTML = `
-                            <div class="flex justify-between items-center">
-                                <div class="font-bold">${task.department}｜${task.name}</div>
-                                <div class="text-xs text-gray-600">${task.startTime}-${task.endTime}</div>
-                            </div>
-                            <div class="text-xs text-gray-600">必要: ${task.requiredPeople}名 / 割当: ${asg.length}名</div>
-                            <div class="mt-1 text-sm">${asg.map(n => `<span class="assigned-ce">${n}</span>`).join('') || '<span class="text-xs text-gray-400">未割当</span>'}</div>
-                        `;
-                        ovWrap.appendChild(card);
-                    });
-                    if (sumEl) sumEl.textContent = `割当 ${totalAsg}/${totalReq}`;
-                }
-            });
-
-            updatePlacementSummary();
-        }
-
-        // ========= 追加/編集モーダル =========
-        function openTaskModal(mode, day = null, index = -1) {
-            if (userRole === 'viewer') return showMessage('編集権限がありません', 'warning');
-            editingTask = { mode, day, index };
-            document.getElementById('taskModalTitle').textContent = (mode === 'edit') ? '業務編集' : '業務追加';
-            document.getElementById('taskDeleteButton').classList.toggle('hidden', mode !== 'edit');
-            document.getElementById('daySelection').style.display = (mode === 'edit') ? 'none' : 'block';
-
-            // 初期値
-            if (mode === 'edit') {
-                const t = globalTasksData[day][index];
-                document.getElementById('taskName').value = t.name;
-                document.getElementById('taskDepartment').value = t.department;
-                document.getElementById('startTime').value = t.startTime;
-                document.getElementById('endTime').value = t.endTime;
-                document.getElementById('taskCount').value = t.count;
-                document.getElementById('requiredPeople').value = t.requiredPeople;
-            } else {
-                document.getElementById('taskName').value = '';
-                document.getElementById('taskDepartment').value = '血液浄化';
-                document.getElementById('startTime').value = '';
-                document.getElementById('endTime').value = '';
-                document.getElementById('taskCount').value = '1';
-                document.getElementById('requiredPeople').value = '1';
-                document.querySelectorAll('.day-checkbox').forEach(cb => cb.checked = false);
-            }
-            showModal('taskModal');
-        }
-
-        function saveTaskFromModal() {
-            const task = {
-                name: document.getElementById('taskName').value.trim(),
-                department: document.getElementById('taskDepartment').value,
-                startTime: document.getElementById('startTime').value,
-                endTime: document.getElementById('endTime').value,
-                count: parseInt(document.getElementById('taskCount').value) || 1,
-                requiredPeople: parseInt(document.getElementById('requiredPeople').value) || 1
+        // ========= ヘルパー関数 =========
+        function updateSyncStatus(status, message) {
+            const syncStatus = document.getElementById('syncStatus');
+            const mainSyncStatus = document.getElementById('mainSyncStatus');
+            
+            const statusClasses = {
+                'connecting': 'sync-indicator connecting',
+                'connected': 'sync-indicator connected',
+                'disconnected': 'sync-indicator disconnected'
             };
-            if (!task.name || !task.startTime || !task.endTime) return showMessage('必要項目を入力してください', 'warning');
-
-            if (editingTask.mode === 'edit') {
-                globalTasksData[editingTask.day][editingTask.index] = task;
-                recordEditHistory('業務編集', `${editingTask.day} / ${task.name}`);
-            } else {
-                const selectedDays = Array.from(document.querySelectorAll('.day-checkbox:checked')).map(cb => cb.value);
-                if (!selectedDays.length) return showMessage('追加する曜日を選択してください', 'warning');
-                selectedDays.forEach(d => { if (!globalTasksData[d]) globalTasksData[d] = []; globalTasksData[d].push({ ...task }); });
-                recordEditHistory('業務追加', `${task.name} (${selectedDays.join(', ')})`);
+            
+            if (syncStatus) {
+                syncStatus.className = statusClasses[status] || 'sync-indicator disconnected';
+                syncStatus.innerHTML = `<div class="sync-dot ${status === 'connected' ? 'pulse' : ''}"></div>${message}`;
             }
-            updateTaskDisplay(); 
-            updatePlacementSummary(); 
-            saveAllToFirebase(); 
-            closeModal('taskModal'); 
-            showMessage('保存しました', 'success');
-        }
-
-        function deleteTaskFromModal() {
-            if (editingTask.mode !== 'edit') return;
-            if (!confirm('この業務を削除しますか？')) return;
-            globalTasksData[editingTask.day].splice(editingTask.index, 1);
-            delete globalAssignmentsData[editingTask.day][editingTask.index];
-            updateTaskDisplay(); 
-            updatePlacementSummary(); 
-            saveAllToFirebase(); 
-            closeModal('taskModal'); 
-            showMessage('削除しました', 'success');
-        }
-
-        // ========= 割当操作 =========
-        function assignCEToTask(day, index, name) {
-            if (userRole === 'viewer') return;
-            if (!globalAssignmentsData[day]) globalAssignmentsData[day] = {};
-            if (!globalAssignmentsData[day][index]) globalAssignmentsData[day][index] = [];
-            if (!globalAssignmentsData[day][index].includes(name)) {
-                globalAssignmentsData[day][index].push(name);
-                updateTaskDisplay(); 
-                updatePlacementSummary(); 
-                saveAllToFirebase(); 
-                recordEditHistory('CE配置', `${day}/${globalTasksData[day][index].name} に ${name}`); 
-                showMessage(`${name} を配置しました`, 'success');
-            } else showMessage(`${name} は既に配置済みです`, 'info');
-        }
-
-        function removeCEAssignment(day, index, name) {
-            if (userRole === 'viewer') return;
-            const a = globalAssignmentsData[day][index] || []; 
-            const i = a.indexOf(name);
-            if (i > -1) { 
-                a.splice(i, 1); 
-                updateTaskDisplay(); 
-                updatePlacementSummary(); 
-                saveAllToFirebase(); 
-                recordEditHistory('CE配置削除', `${day}/${globalTasksData[day][index].name} から ${name}`); 
+            
+            if (mainSyncStatus) {
+                mainSyncStatus.className = statusClasses[status] || 'sync-indicator disconnected';
+                mainSyncStatus.innerHTML = `<div class="sync-dot ${status === 'connected' ? 'pulse' : ''}"></div><span class="sidebar-text">${message}</span>`;
             }
-        }
-        window.removeCEAssignment = removeCEAssignment; // HTMLから呼ぶため
-
-        // ========= サマリ =========
-        function updatePlacementSummary() {
-            const day = currentActiveDay;
-            const c = document.getElementById('summaryContent'); 
-            if (!c) return;
-            if (day === 'overview') { 
-                c.innerHTML = '<div class="text-xs font-bold text-blue-600">全体表示中</div>'; 
-                return; 
-            }
-            const tasks = globalTasksData[day] || []; 
-            const assigns = globalAssignmentsData[day] || {};
-            let req = 0, asg = 0;
-            tasks.forEach((t, i) => { req += (t.requiredPeople || 0); asg += (assigns[i] || []).length; });
-            const pct = req > 0 ? Math.round(asg / req * 100) : 0;
-            const color = pct >= 100 ? 'text-green-700' : pct >= 80 ? 'text-yellow-700' : 'text-red-700';
-            c.innerHTML = `<div class="text-center"><div class="font-bold ${color}">配置状況: ${asg}/${req}名 (${pct}%)</div><div class="text-xs text-gray-600">${tasks.length}件の業務</div></div>`;
-        }
-
-        // ========= テンプレート =========
-        function saveTemplate() {
-            if (userRole === 'viewer') return showMessage('編集権限がありません', 'warning');
-            if (!isFirebaseReady) return showMessage('Firebase未接続です', 'warning');
-            const name = prompt('テンプレート名を入力してください'); 
-            if (!name) return;
-            const data = { tasks: globalTasksData, assignments: globalAssignmentsData, ceList: CE_LIST, createdBy: currentUser, createdAt: Date.now() };
-            database.ref(`${DATA_ROOT}/templates/${name}`).set(data).then(() => { 
-                showMessage('テンプレートを保存しました', 'success'); 
-                loadTemplateListUI(); 
-            }).catch(e => { 
-                console.error(e); 
-                showMessage('テンプレート保存に失敗しました', 'error'); 
-            });
-        }
-
-        function showTemplateList() { 
-            loadTemplateListUI(true); 
-        }
-
-        function loadTemplateListUI(openPrompt = false) {
-            if (!isFirebaseReady) return;
-            const parent = document.getElementById('savedTemplates'); 
-            parent.innerHTML = '';
-            database.ref(`${DATA_ROOT}/templates`).once('value').then(snap => {
-                if (!snap.exists()) { 
-                    parent.innerHTML = '<div class="text-xs text-gray-500">テンプレートなし</div>'; 
-                    return; 
-                }
-                const templates = snap.val(); 
-                const names = Object.keys(templates);
-                names.sort().forEach(name => {
-                    const row = document.createElement('div'); 
-                    row.className = 'flex items-center justify-between bg-white/70 p-2 rounded';
-                    row.innerHTML = `<div class="text-sm">${name}</div><div class="space-x-2">
-                        <button class="px-2 py-1 border rounded text-xs" onclick="applyTemplate('${name}')">読込</button>
-                        <button class="px-2 py-1 border rounded text-xs" onclick="deleteTemplate('${name}')">削除</button>
-                    </div>`;
-                    parent.appendChild(row);
-                });
-                if (openPrompt) {
-                    const sel = prompt(`読込むテンプレート名を入力（候補）:\n${names.join('\n')}`);
-                    if (sel && templates[sel]) applyTemplate(sel);
-                }
-            });
-        }
-
-        function applyTemplate(name) {
-            database.ref(`${DATA_ROOT}/templates/${name}`).once('value').then(snap => {
-                if (!snap.exists()) return showMessage('テンプレートが存在しません', 'warning');
-                const d = snap.val();
-                globalTasksData = d.tasks || globalTasksData;
-                globalAssignmentsData = d.assignments || globalAssignmentsData;
-                CE_LIST = d.ceList || CE_LIST;
-                updateAllDisplays(); 
-                saveAllToFirebase(); 
-                showMessage(`「${name}」を読込みました`, 'success');
-            });
-        }
-
-        function deleteTemplate(name) {
-            if (!confirm(`テンプレート「${name}」を削除しますか？`)) return;
-            database.ref(`${DATA_ROOT}/templates/${name}`).remove().then(() => { 
-                showMessage('削除しました', 'success'); 
-                loadTemplateListUI(); 
-            });
-        }
-
-        // ========= データ保存/読込（同期不良対策でパス固定） =========
-        function tryRestoreFromLocalStorage() {
-            try {
-                const s1 = localStorage.getItem('globalTasksData'); 
-                if (s1) globalTasksData = JSON.parse(s1);
-                const s2 = localStorage.getItem('globalAssignmentsData'); 
-                if (s2) globalAssignmentsData = JSON.parse(s2);
-                const s3 = localStorage.getItem('CE_LIST'); 
-                if (s3) CE_LIST = JSON.parse(s3);
-            } catch (e) { 
-                console.warn('ローカル復元失敗', e); 
-            }
-        }
-
-        function saveAllToLocal() {
-            try {
-                localStorage.setItem('globalTasksData', JSON.stringify(globalTasksData));
-                localStorage.setItem('globalAssignmentsData', JSON.stringify(globalAssignmentsData));
-                localStorage.setItem('CE_LIST', JSON.stringify(CE_LIST));
-            } catch { }
-        }
-
-        async function saveAllToFirebase() {
-            saveAllToLocal();
-            if (!isFirebaseReady) return false;
-            const payload = { tasks: globalTasksData, assignments: globalAssignmentsData, ceList: CE_LIST, lastUpdatedBy: currentUser || 'System', lastUpdated: Date.now() };
-            try {
-                await database.ref(`${DATA_ROOT}/state`).set(payload);
-                updateSyncTime(); 
-                recordEditHistory('データ保存');
-                return true;
-            } catch (e) { 
-                console.error('保存エラー', e); 
-                showMessage('Firebase保存に失敗しました（ローカルに保存済）', 'warning'); 
-                return false; 
-            }
-        }
-
-        async function loadAllFromFirebase() {
-            if (!isFirebaseReady) return;
-            try {
-                const snap = await database.ref(`${DATA_ROOT}/state`).once('value');
-                if (snap.exists()) {
-                    const d = snap.val();
-                    globalTasksData = d.tasks || globalTasksData;
-                    globalAssignmentsData = d.assignments || globalAssignmentsData;
-                    CE_LIST = d.ceList || CE_LIST;
-                    updateAllDisplays();
-                } else {
-                    // 初回データを作成
-                    await database.ref(`${DATA_ROOT}/state`).set({ tasks: globalTasksData, assignments: globalAssignmentsData, ceList: CE_LIST, lastUpdatedBy: 'System', lastUpdated: Date.now() });
-                }
-                loadTemplateListUI();
-            } catch (e) { 
-                console.error('読込エラー', e); 
-            }
-        }
-
-        function setupRealTimeSync() {
-            if (!isFirebaseReady) return;
-            database.ref(`${DATA_ROOT}/state`).on('value', snap => {
-                if (!snap.exists()) return;
-                const d = snap.val(); 
-                if (d.lastUpdatedBy === currentUser) return;
-                globalTasksData = d.tasks || globalTasksData;
-                globalAssignmentsData = d.assignments || globalAssignmentsData;
-                CE_LIST = d.ceList || CE_LIST;
-                updateAllDisplays();
-                showMessage(`${d.lastUpdatedBy} の変更を同期しました`, 'info');
-                updateSyncTime();
-            });
-        }
-
-        function updateAllDisplays() {
-            displayCEList(); 
-            renderDaySections(); 
-            updatePlacementSummary(); 
-            if (document.getElementById('analysisContent').style.display === 'block') generateAnalysis();
-        }
-
-        function updateSyncTime() {
-            const t = new Date().toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
-            const a = document.getElementById('lastSyncTime'); 
-            const b = document.getElementById('lastSyncDisplay');
-            if (a) a.textContent = `最終: ${t}`; 
-            if (b) b.textContent = t;
-        }
-
-        // ========= 変更履歴 / ログイン履歴 =========
-        function recordEditHistory(action, details = '') {
-            if (!isFirebaseReady) return;
-            const item = { timestamp: new Date().toISOString(), user: currentUser || 'System', role: userRole || 'unknown', action, details };
-            database.ref(`${DATA_ROOT}/editHistory`).push(item).catch(() => { });
-        }
-
-        function loadChangeHistory() {
-            if (!isFirebaseReady) return;
-            const c = document.getElementById('changeHistory'); 
-            if (!c) return;
-            database.ref(`${DATA_ROOT}/editHistory`).limitToLast(50).once('value').then(snap => {
-                let html = '';
-                if (snap.exists()) {
-                    const list = []; 
-                    snap.forEach(ch => list.push(ch.val())); 
-                    list.reverse();
-                    list.forEach(it => {
-                        html += `<div class="border-b pb-2 mb-2">
-                            <div class="font-medium text-sm">${new Date(it.timestamp).toLocaleString('ja-JP')}</div>
-                            <div class="text-sm text-blue-600">${it.user} (${it.role})</div>
-                            <div class="text-sm">${it.action}</div>
-                            ${it.details ? `<div class="text-xs text-gray-500">${it.details}</div>` : ''}
-                        </div>`;
-                    });
-                } else html = '<div class="text-sm text-gray-600">履歴なし</div>';
-                c.innerHTML = html;
-            });
-        }
-
-        function recordLoginEvent(type) {
-            if (!isFirebaseReady) return;
-            const item = { type, user: currentUser || 'unknown', role: userRole || 'unknown', at: Date.now() };
-            database.ref(`${DATA_ROOT}/loginHistory`).push(item);
-        }
-
-        function loadLoginStats() {
-            if (!isFirebaseReady) return;
-            const listEl = document.getElementById('loginHistoryList'); 
-            const statsEl = document.getElementById('loginStats');
-            if (!listEl || !statsEl) return;
-            database.ref(`${DATA_ROOT}/loginHistory`).limitToLast(200).once('value').then(snap => {
-                const logs = []; 
-                if (snap.exists()) snap.forEach(ch => logs.push(ch.val())); 
-                logs.sort((a, b) => b.at - a.at);
-                listEl.innerHTML = logs.map(l => `<div class="border-b py-1"><span class="font-medium">${l.user}</span> <span class="text-xs text-gray-500">(${l.role})</span> - ${l.type} - ${new Date(l.at).toLocaleString('ja-JP')}</div>`).join('') || '<div class="text-sm text-gray-600">履歴なし</div>';
-                // 集計
-                const map = {};
-                logs.forEach(l => {
-                    if (!map[l.user]) map[l.user] = { logins: 0, logouts: 0, last: null, changes: 0 };
-                    if (l.type === 'login') map[l.user].logins++; 
-                    if (l.type === 'logout') map[l.user].logouts++; 
-                    if (!map[l.user].last || l.at > map[l.user].last) map[l.user].last = l.at;
-                });
-                // 変更履歴からユーザー別変更回数
-                database.ref(`${DATA_ROOT}/editHistory`).limitToLast(500).once('value').then(s2 => {
-                    if (s2.exists()) s2.forEach(ch => { const v = ch.val(); if (!map[v.user]) map[v.user] = { logins: 0, logouts: 0, last: null, changes: 0 }; map[v.user].changes++; });
-                    const rows = Object.keys(map).sort().map(u => {
-                        const m = map[u]; 
-                        return `<div class="border-b py-1"><span class="font-medium">${u}</span> - ログイン:${m.logins} / ログアウト:${m.logouts} / 変更:${m.changes} / 最終:${m.last ? new Date(m.last).toLocaleString('ja-JP') : '--'}</div>`;
-                    }).join('');
-                    statsEl.innerHTML = rows || '<div class="text-sm text-gray-600">集計なし</div>';
-                });
-            });
-        }
-
-        // ========= CE編集 =========
-        function openCEEdit(name, index) {
-            editingCEIndex = index;
-            const ce = CE_LIST[index];
-            document.getElementById('editCEName').value = ce.name;
-            document.getElementById('editCEWorkType').value = ce.workType;
-            const st = ce.status || {};
-            ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(d => {
-                document.getElementById(`ceStatus_${d}`).value = st[d] || '';
-            });
-            showModal('ceEditModal');
-        }
-
-        function saveCEFromModal() {
-            if (editingCEIndex === -1) return;
-            const oldName = CE_LIST[editingCEIndex].name;
-            const newName = document.getElementById('editCEName').value.trim();
-            const newType = document.getElementById('editCEWorkType').value;
-            if (!newName) return showMessage('名前を入力してください', 'warning');
-            CE_LIST[editingCEIndex] = { name: newName, workType: newType };
-
-            // 状態保存
-            const st = {};
-            ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(d => st[d] = document.getElementById(`ceStatus_${d}`).value);
-            CE_LIST[editingCEIndex].status = st;
-
-            // 割当内の改名反映
-            if (oldName !== newName) {
-                Object.keys(globalAssignmentsData).forEach(day => {
-                    Object.keys(globalAssignmentsData[day]).forEach(i => {
-                        const arr = globalAssignmentsData[day][i]; 
-                        const p = arr.indexOf(oldName); 
-                        if (p > -1) arr[p] = newName;
-                    });
-                });
-            }
-            displayCEList(); 
-            updateTaskDisplay(); 
-            saveAllToFirebase(); 
-            recordEditHistory('CE編集', `${oldName} → ${newName}`); 
-            closeModal('ceEditModal'); 
-            showMessage('CEを更新しました', 'success');
-        }
-
-        // ========= CEリスト管理（追加・削除・並べ替え） =========
-        function openCEManagement() {
-            if (userRole !== 'admin') return showMessage('管理者権限が必要です', 'warning');
-            const list = document.getElementById('ceManageList'); 
-            list.innerHTML = '';
-            CE_LIST.forEach((ce, idx) => {
-                const li = document.createElement('li');
-                li.className = 'flex items-center justify-between bg-white/70 p-2 rounded';
-                li.draggable = true; 
-                li.dataset.index = idx;
-                li.innerHTML = `<div><span class="font-bold mr-2">${ce.name}</span><span class="text-xs text-gray-600">${ce.workType}</span></div>
-                    <div class="flex items-center gap-2">
-                        <button class="px-2 py-1 border rounded text-xs" onclick="editFromManager(${idx})">編集</button>
-                        <button class="px-2 py-1 border rounded text-xs text-red-600" onclick="deleteFromManager(${idx})"><i class="fas fa-trash"></i></button>
-                    </div>`;
-                li.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', idx));
-                li.addEventListener('dragover', e => e.preventDefault());
-                li.addEventListener('drop', e => {
-                    e.preventDefault();
-                    const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
-                    const to = parseInt(li.dataset.index, 10);
-                    if (from === to) return;
-                    const item = CE_LIST.splice(from, 1)[0];
-                    CE_LIST.splice(to, 0, item);
-                    openCEManagement(); // 再描画
-                });
-                list.appendChild(li);
-            });
-            showModal('ceManageModal');
-        }
-
-        function addNewCE() {
-            const n = document.getElementById('newCEName').value.trim();
-            const t = document.getElementById('newCEWorkType').value;
-            if (!n) return showMessage('名前を入力してください', 'warning');
-            CE_LIST.push({ name: n, workType: t, status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } });
-            document.getElementById('newCEName').value = ''; 
-            openCEManagement();
-        }
-
-        function editFromManager(idx) { 
-            openCEEdit(CE_LIST[idx].name, idx); 
-        }
-
-        function deleteFromManager(idx) {
-            if (!confirm(`${CE_LIST[idx].name} を削除しますか？`)) return;
-            const name = CE_LIST[idx].name;
-            CE_LIST.splice(idx, 1);
-            Object.keys(globalAssignmentsData).forEach(day => {
-                Object.keys(globalAssignmentsData[day]).forEach(i => {
-                    const arr = globalAssignmentsData[day][i]; 
-                    const p = arr.indexOf(name); 
-                    if (p > -1) arr.splice(p, 1);
-                });
-            });
-            openCEManagement();
-        }
-
-        function saveCEManagement() { 
-            displayCEList(); 
-            saveAllToFirebase(); 
-            closeModal('ceManageModal'); 
-            showMessage('CEリストを保存しました', 'success'); 
-        }
-
-        // ========= 分析 =========
-        function generateAnalysis() {
-            generatePlacementSummaryTable();
-            generateDepartmentChart();
-            generateIndividualChart();
-            generateTimeSlotChartDept();
-            generateTimeSlotChartDay();
-        }
-
-        function generatePlacementSummaryTable() {
-            const c = document.getElementById('placementSummaryTable'); 
-            if (!c) return;
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-            const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜'];
-            const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
-
-            let html = '<div class="overflow-x-auto"><table class="min-w-full border-collapse border border-gray-300 text-sm"><thead><tr><th class="border p-2 bg-gray-100">部門</th>';
-            dayLabels.forEach(l => html += `<th class="border p-2 bg-gray-100">${l}</th>`); 
-            html += '<th class="border p-2 bg-gray-100">週平均</th></tr></thead><tbody>';
-
-            departments.forEach(dept => {
-                html += `<tr><td class="border p-2 font-bold">${dept}</td>`;
-                let totalR = 0, totalA = 0;
-                days.forEach(day => {
-                    const tasks = globalTasksData[day] || []; 
-                    const assigns = globalAssignmentsData[day] || {};
-                    let r = 0, a = 0; 
-                    tasks.forEach((t, i) => { if (t.department === dept) { r += t.requiredPeople; a += (assigns[i] || []).length; } });
-                    totalR += r; 
-                    totalA += a;
-                    const pct = r > 0 ? Math.round(a / r * 100) : 0;
-                    const bg = pct >= 100 ? 'bg-green-100' : (pct >= 80 ? 'bg-yellow-100' : (r > 0 ? 'bg-red-100' : ''));
-                    html += `<td class="border p-2 ${bg}">${a}/${r} (${pct}%)</td>`;
-                });
-                const avg = totalR > 0 ? Math.round(totalA / totalR * 100) : 0;
-                html += `<td class="border p-2 font-bold">${avg}%</td></tr>`;
-            });
-
-            html += '</tbody></table></div>';
-            c.innerHTML = html;
-        }
-
-        // 部門別充足率チャート生成（割合表示）
-        function generateDepartmentChart() {
-            const ctx = document.getElementById('departmentChart'); 
-            if (!ctx) return;
-            if (window.departmentChartInstance) window.departmentChartInstance.destroy();
-            const depts = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-            const data = depts.map(dept => {
-                let R = 0, A = 0;
-                days.forEach(day => {
-                    const tasks = globalTasksData[day] || []; 
-                    const assigns = globalAssignmentsData[day] || {};
-                    tasks.forEach((t, i) => { if (t.department === dept) { R += t.requiredPeople || 0; A += (assigns[i] || []).length; } });
-                });
-                return R > 0 ? Math.round(A / R * 100) : 0;
-            });
-            window.departmentChartInstance = new Chart(ctx, { 
-                type: 'bar', 
-                data: { 
-                    labels: depts, 
-                    datasets: [{ 
-                        label: '充足率(%)', 
-                        data: data, 
-                        backgroundColor: data.map(v => v >= 100 ? '#4CAF50' : v >= 80 ? '#FFC107' : '#F44336'), 
-                        borderColor: '#333', 
-                        borderWidth: 1 
-                    }] 
-                },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    scales: { 
-                        y: { 
-                            beginAtZero: true, 
-                            max: 120, 
-                            ticks: { callback: function (value) { return value + '%'; } } 
-                        } 
-                    }, 
-                    plugins: { 
-                        legend: { display: false }, 
-                        tooltip: { 
-                            callbacks: { 
-                                label: function (context) { return `充足率: ${context.parsed.y}%`; } 
-                            } 
-                        } 
-                    } 
-                }
-            });
-        }
-
-        // 個人別業務時間分析チャート生成
-        function generateIndividualChart() {
-            const ctx = document.getElementById('individualChart'); 
-            if (!ctx) return;
-            if (window.individualChartInstance) window.individualChartInstance.destroy();
-            const ceNames = CE_LIST.map(ce => ce.name);
-            const data = ceNames.map(ceName => {
-                let totalHours = 0;
-                ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
-                    const tasks = globalTasksData[day] || []; 
-                    const assigns = globalAssignmentsData[day] || {};
-                    tasks.forEach((task, taskIndex) => {
-                        if (assigns[taskIndex] && assigns[taskIndex].includes(ceName)) {
-                            const startTime = parseFloat(task.startTime.replace(':', '.'));
-                            const endTime = parseFloat(task.endTime.replace(':', '.'));
-                            const hours = endTime - startTime;
-                            totalHours += hours;
-                        }
-                    });
-                });
-                return Math.round(totalHours * 10) / 10;
-            });
-
-            window.individualChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ceNames,
-                    datasets: [{
-                        label: '業務時間 (時間)',
-                        data: data,
-                        backgroundColor: '#36A2EB',
-                        borderColor: '#1E88E5',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function (value) {
-                                    return value + '時間';
-                                }
-                            }
-                        },
-                        x: {
-                            ticks: {
-                                maxRotation: 45
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    return `業務時間: ${context.parsed.y}時間`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // 時間帯別配置人数チャート生成（部門別）
-        function generateTimeSlotChartDept() {
-            const ctx = document.getElementById('timeSlotChartDept'); 
-            if (!ctx) return;
-            if (window.timeSlotChartDept) window.timeSlotChartDept.destroy();
-            const timeSlots = Array.from({ length: 12 }, (_, i) => i + 7); // 7時から18時
-            const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
-            const colors = ['#FFB6C1', '#4169E1', '#32CD32', '#87CEEB', '#9370DB', '#90EE90'];
-
-            const datasets = departments.map((dept, deptIndex) => {
-                const data = timeSlots.map(hour => {
-                    let totalPeople = 0;
-                    ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'].forEach(day => {
-                        const tasks = globalTasksData[day] || []; 
-                        const assigns = globalAssignmentsData[day] || {};
-                        tasks.forEach((task, taskIndex) => {
-                            if (task.department === dept) {
-                                const startHour = parseInt(task.startTime.split(':')[0]);
-                                const endHour = parseInt(task.endTime.split(':')[0]);
-                                if (hour >= startHour && hour < endHour) {
-                                    totalPeople += (assigns[taskIndex] || []).length;
-                                }
-                            }
-                        });
-                    });
-                    return totalPeople;
-                });
-
-                return {
-                    label: dept,
-                    data: data,
-                    borderColor: colors[deptIndex],
-                    backgroundColor: colors[deptIndex] + '20',
-                    fill: false,
-                    tension: 0.1
-                };
-            });
-
-            window.timeSlotChartDept = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: timeSlots.map(hour => `${hour}:00`),
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1,
-                                callback: function (value) {
-                                    return value + '人';
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    return `${context.dataset.label}: ${context.parsed.y}人`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // 時間帯別配置人数チャート生成（曜日別）
-        function generateTimeSlotChartDay() {
-            const ctx = document.getElementById('timeSlotChartDay'); 
-            if (!ctx) return;
-            if (window.timeSlotChartDay) window.timeSlotChartDay.destroy();
-            const timeSlots = Array.from({ length: 12 }, (_, i) => i + 7); // 7時から18時
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-            const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜'];
-            const colors = ['#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6'];
-
-            const datasets = days.map((day, dayIndex) => {
-                const data = timeSlots.map(hour => {
-                    let totalPeople = 0;
-                    const tasks = globalTasksData[day] || []; 
-                    const assigns = globalAssignmentsData[day] || {};
-                    tasks.forEach((task, taskIndex) => {
-                        const startHour = parseInt(task.startTime.split(':')[0]);
-                        const endHour = parseInt(task.endTime.split(':')[0]);
-                        if (hour >= startHour && hour < endHour) {
-                            totalPeople += (assigns[taskIndex] || []).length;
-                        }
-                    });
-                    return totalPeople;
-                });
-
-                return {
-                    label: dayLabels[dayIndex],
-                    data: data,
-                    borderColor: colors[dayIndex],
-                    backgroundColor: colors[dayIndex] + '20',
-                    fill: false,
-                    tension: 0.1
-                };
-            });
-
-            window.timeSlotChartDay = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: timeSlots.map(hour => `${hour}:00`),
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1,
-                                callback: function (value) {
-                                    return value + '人';
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function (context) {
-                                    return `${context.dataset.label}: ${context.parsed.y}人`;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
-
-        // ========= タイムライン（2列表示） =========
-        function generateTimeline() {
-            const container = document.getElementById('timelineContainer'); 
-            if (!container) return;
-            container.innerHTML = '';
-            CE_LIST.forEach(ce => {
-                const box = document.createElement('div'); 
-                box.className = 'glassmorphism rounded-lg p-4';
-                box.innerHTML = `<h4 class="font-bold mb-2">${ce.name} (${ce.workType}) ${statusBadge(currentActiveDay, ce.name)}</h4>
-                    <div class="relative h-48 bg-white/80 border rounded">
-                        <div class="absolute inset-x-0 top-0 h-6 flex text-[10px]">
-                            <div class="flex-1 text-center border-r">7:00</div><div class="flex-1 text-center border-r">9:00</div><div class="flex-1 text-center border-r">11:00</div>
-                            <div class="flex-1 text-center border-r">13:00</div><div class="flex-1 text-center border-r">15:00</div><div class="flex-1 text-center">17:00</div>
-                        </div>
-                        <div class="absolute left-0 top-6 bottom-0 w-10 bg-gray-50 border-r text-[10px] text-center">
-                            <div class="h-1/5">月</div><div class="h-1/5">火</div><div class="h-1/5">水</div><div class="h-1/5">木</div><div class="h-1/5">金</div>
-                        </div>
-                        <div class="absolute top-6 left-10 right-0 bottom-0" id="tl-${ce.name}"></div>
-                    </div>`;
-                container.appendChild(box);
-
-                // バー描画
-                const area = box.querySelector(`#tl-${CSS.escape(ce.name)}`);
-                const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-                days.forEach((day, di) => {
-                    const tasks = globalTasksData[day] || []; 
-                    const assigns = globalAssignmentsData[day] || {};
-                    tasks.forEach((t, i) => {
-                        if ((assigns[i] || []).includes(ce.name)) {
-                            const sh = parseFloat(t.startTime.replace(':', '.')); 
-                            const eh = parseFloat(t.endTime.replace(':', '.'));
-                            const startPos = Math.max(0, ((sh - 7) / 11) * 100); 
-                            const width = Math.min(100 - startPos, ((eh - sh) / 11) * 100);
-                            const div = document.createElement('div');
-                            div.style.cssText = `position:absolute; top:${di * 32 + 4}px; left:${startPos}%; width:${width}%; height:26px; background:rgba(76,175,80,0.75); border:1px solid #4CAF50; border-radius:4px; font-size:10px; color:#fff; text-align:center; line-height:26px;`;
-                            div.textContent = t.name;
-                            area.appendChild(div);
-                        }
-                    });
-                });
-            });
-        }
-
-        // ========= 印刷 =========
-        function printChart(id) {
-            const node = document.getElementById(id); 
-            if (!node) return;
-            const w = window.open('', 'printWindow'); 
-            if (!w) return;
-            const css = document.querySelector('head').innerHTML;
-            w.document.write(`<html><head>${css}</head><body>${node.outerHTML}</body></html>`);
-            w.document.close(); 
-            w.focus(); 
-            w.print();
-        }
-
-        function printCanvas(canvasId) {
-            const c = document.getElementById(canvasId); 
-            if (!c) return;
-            const w = window.open('', 'printCanvas'); 
-            if (!w) return;
-            w.document.write(`<html><head><title>Print</title></head><body><img src="${c.toDataURL('image/png')}" style="max-width:100%"/></body></html>`);
-            w.document.close(); 
-            w.focus(); 
-            w.print();
-        }
-
-        // ========= その他の業務クリア =========
-        function clearAllTasks() {
-            if (userRole === 'viewer') return showMessage('編集権限がありません', 'warning');
-            if (!confirm('全ての業務をクリアしますか？')) return;
-            globalTasksData = { monday: [], tuesday: [], wednesday: [], thursday: [], friday: [] };
-            globalAssignmentsData = { monday: {}, tuesday: {}, wednesday: {}, thursday: {}, friday: {} };
-            saveAllToFirebase(); 
-            recordEditHistory('全業務クリア'); 
-            updateTaskDisplay(); 
-            updatePlacementSummary(); 
-            showMessage('全ての業務をクリアしました', 'success');
-        }
-
-        // ========= ヘルパー =========
-        function showModal(id) { 
-            const m = document.getElementById(id); 
-            if (m) m.style.display = 'block'; 
-        }
-
-        function closeModal(id) { 
-            const m = document.getElementById(id); 
-            if (m) m.style.display = 'none'; 
         }
 
         function showMessage(text, type = 'info') {
-            const c = document.getElementById('messageContainer'); 
-            const d = document.createElement('div'); 
-            d.className = `message ${type}`;
-            const icon = { success: 'check', error: 'times', warning: 'exclamation', info: 'info' }[type] || 'info';
-            d.innerHTML = `<i class="fas fa-${icon}-circle"></i>${text}`; 
-            c.appendChild(d); 
-            setTimeout(() => d.remove(), 4000);
-        }
-
-        function copyFullHtml() {
-            const html = document.documentElement.outerHTML;
-            if (navigator.clipboard) { 
-                navigator.clipboard.writeText(html).then(() => showMessage('HTML全文をコピーしました', 'success')); 
-            } else {
-                const ta = document.createElement('textarea'); 
-                ta.value = html; 
-                document.body.appendChild(ta); 
-                ta.select();
-                try { 
-                    document.execCommand('copy'); 
-                    showMessage('HTML全文をコピーしました', 'success'); 
-                } catch { 
-                    showMessage('コピーに失敗しました', 'error'); 
+            const container = document.getElementById('messageContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const icons = {
+                success: 'check',
+                error: 'times',
+                warning: 'exclamation',
+                info: 'info'
+            };
+            
+            messageDiv.innerHTML = `
+                <i class="fas fa-${icons[type]}-circle"></i>
+                ${text}
+            `;
+            
+            container.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
                 }
-                document.body.removeChild(ta);
-            }
+            }, 4000);
         }
-
-        // ========= エクスポート（HTMLから呼ぶ用） =========
-        window.openTaskModal = openTaskModal;
-        window.applyTemplate = applyTemplate;
-        window.deleteTemplate = deleteTemplate;
-        window.addNewCE = addNewCE;
-        window.editFromManager = editFromManager;
-        window.deleteFromManager = deleteFromManager;
-        window.saveCEManagement = saveCEManagement;
-        window.printChart = printChart;
-        window.printCanvas = printCanvas
+    </script>
+</body>
+</html>
