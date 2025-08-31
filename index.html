@@ -6,7 +6,7 @@
     <title>CEスケジュール管理システム Ver.1</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -1835,26 +1835,56 @@
             }
         }
 
-        async function loadAllFromFirebase() {
-            if (!isFirebaseReady || !database) return;
+     async function loadAllFromFirebase() {
+    if (!isFirebaseReady || !database) return;
 
-            try {
-                const snapshot = await database.ref(`${DATA_ROOT}/state`).once('value');
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    globalTasksData = data.tasks || globalTasksData;
-                    globalAssignmentsData = data.assignments || globalAssignmentsData;
-                    CE_LIST = data.ceList || CE_LIST;
-                    updateAllDisplays();
-                } else {
-                    // 初回データ作成
-                    await saveAllToFirebase();
-                }
-                loadTemplateListUI();
-            } catch (error) {
-                console.error('Firebase読込エラー:', error);
+    // ローカルにデータがあるかチェック
+    const hasLocalData = (data) => {
+        return ['monday','tuesday','wednesday','thursday','friday'].some(d => (data[d] || []).length > 0);
+    };
+
+    try {
+        const snapshot = await database.ref(`${DATA_ROOT}/state`).once('value');
+        const localHasData = hasLocalData(globalTasksData);
+
+        if (snapshot.exists()) {
+            const data = snapshot.val() || {};
+            const serverHasData = hasLocalData(data.tasks);
+
+            if (serverHasData) {
+                // サーバにデータあり → サーバを採用
+                globalTasksData = data.tasks || globalTasksData;
+                globalAssignmentsData = data.assignments || globalAssignmentsData;
+                CE_LIST = data.ceList || CE_LIST;
+                console.log('✅ Firebaseからデータを読み込みました');
+            } else if (localHasData) {
+                // サーバ空・ローカル有 → ローカルをサーバへ反映
+                console.log('🔄 ローカルデータをFirebaseに保存します');
+                await saveAllToFirebase();
+            }
+        } else {
+            // サーバキー未作成 → 初期データ作成
+            if (localHasData) {
+                await saveAllToFirebase();
+            } else {
+                await database.ref(`${DATA_ROOT}/state`).set({
+                    tasks: globalTasksData,
+                    assignments: globalAssignmentsData,
+                    ceList: CE_LIST,
+                    lastUpdatedBy: currentUser || 'System',
+                    lastUpdated: Date.now(),
+                    timestamp: new Date().toISOString()
+                });
             }
         }
+
+        updateAllDisplays();
+        loadTemplateListUI();
+    } catch (error) {
+        console.error('Firebase読込エラー:', error);
+        showMessage('Firebase読込に失敗しました（ローカルデータを使用）', 'warning');
+    }
+}
 
         function setupRealTimeSync() {
             if (!isFirebaseReady || !database) return;
@@ -2010,8 +2040,16 @@
         window.printCanvas = printCanvas;
         // ========= GLOBAL FUNCTIONS END =========
 
-    // ========= PLACEHOLDER FUNCTIONS START (行数: 1952-2000) =========
-// タイムライン生成（実装）
+  // ========= COMPLETE FUNCTIONS START (行数: 1952-2000) =========
+// Chart.jsインスタンス管理
+let chartInstances = {
+    departmentChart: null,
+    individualChart: null,
+    timeSlotChartDept: null,
+    timeSlotChartDay: null
+};
+
+// ========== 個人別タイムライン（既存機能維持） ==========
 function generateTimeline() {
     const container = document.getElementById('timelineContainer');
     if (!container) return;
@@ -2052,7 +2090,7 @@ function generateTimeline() {
     const timelineEnd = timeToMinutes('19:00');
     const totalMinutes = timelineEnd - timelineStart;
 
-    // 各CEカードを生成（2列は既存のCSSグリッドで対応）
+    // 各CEカードを生成
     CE_LIST.forEach(ce => {
         const ceCard = document.createElement('div');
         ceCard.className = 'glassmorphism rounded-2xl p-4';
@@ -2137,6 +2175,295 @@ function generateTimeline() {
     });
 }
 
+// ========== 集計・分析機能 ==========
+function generateAnalysis() {
+    console.log('🔄 集計・分析機能生成開始');
+    buildPlacementSummaryTable();
+    generateDepartmentChart();
+    generateIndividualChart();
+    generateTimeSlotCharts();
+}
+
+function buildPlacementSummaryTable() {
+    const container = document.getElementById('placementSummaryTable');
+    if (!container) return;
+
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const dayLabels = ['月', '火', '水', '木', '金'];
+    const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
+
+    let tableHTML = `
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse border border-gray-300 text-sm">
+                <thead>
+                    <tr class="bg-gray-100">
+                        <th class="border border-gray-300 p-2 text-left">部門</th>
+                        ${dayLabels.map(day => `<th class="border border-gray-300 p-2 text-center">${day}</th>`).join('')}
+                        <th class="border border-gray-300 p-2 text-center">週合計</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    let totalWeekRequired = 0;
+    let totalWeekAssigned = 0;
+
+    departments.forEach(dept => {
+        let deptWeekRequired = 0;
+        let deptWeekAssigned = 0;
+        let rowHTML = `<tr><td class="border border-gray-300 p-2 font-bold" style="background: ${getDepartmentColor(dept)}20">${dept}</td>`;
+
+        days.forEach(day => {
+            const tasks = (globalTasksData[day] || []).filter(task => task.department === dept);
+            const assignments = globalAssignmentsData[day] || {};
+            
+            let dayRequired = 0;
+            let dayAssigned = 0;
+            
+            tasks.forEach(task => {
+                const globalIndex = (globalTasksData[day] || []).indexOf(task);
+                dayRequired += task.requiredPeople;
+                dayAssigned += (assignments[globalIndex] || []).length;
+            });
+
+            deptWeekRequired += dayRequired;
+            deptWeekAssigned += dayAssigned;
+
+            const percentage = dayRequired > 0 ? Math.round((dayAssigned / dayRequired) * 100) : 0;
+            const colorClass = percentage >= 100 ? 'text-green-600' : percentage >= 80 ? 'text-yellow-600' : 'text-red-600';
+            
+            rowHTML += `<td class="border border-gray-300 p-2 text-center ${colorClass}">${dayAssigned}/${dayRequired} (${percentage}%)</td>`;
+        });
+
+        totalWeekRequired += deptWeekRequired;
+        totalWeekAssigned += deptWeekAssigned;
+
+        const weekPercentage = deptWeekRequired > 0 ? Math.round((deptWeekAssigned / deptWeekRequired) * 100) : 0;
+        const weekColorClass = weekPercentage >= 100 ? 'text-green-600' : weekPercentage >= 80 ? 'text-yellow-600' : 'text-red-600';
+        rowHTML += `<td class="border border-gray-300 p-2 text-center font-bold ${weekColorClass}">${deptWeekAssigned}/${deptWeekRequired} (${weekPercentage}%)</td></tr>`;
+        
+        tableHTML += rowHTML;
+    });
+
+    // 合計行
+    const totalPercentage = totalWeekRequired > 0 ? Math.round((totalWeekAssigned / totalWeekRequired) * 100) : 0;
+    const totalColorClass = totalPercentage >= 100 ? 'text-green-600' : totalPercentage >= 80 ? 'text-yellow-600' : 'text-red-600';
+    
+    tableHTML += `
+                </tbody>
+                <tfoot>
+                    <tr class="bg-gray-50 font-bold">
+                        <td class="border border-gray-300 p-2">全体合計</td>
+                        <td colspan="${days.length}" class="border border-gray-300 p-2"></td>
+                        <td class="border border-gray-300 p-2 text-center ${totalColorClass}">${totalWeekAssigned}/${totalWeekRequired} (${totalPercentage}%)</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    `;
+    
+    container.innerHTML = tableHTML;
+}
+
+function generateDepartmentChart() {
+    const ctx = document.getElementById('departmentChart');
+    if (!ctx) return;
+
+    // 既存チャートを破棄
+    if (chartInstances.departmentChart) {
+        chartInstances.departmentChart.destroy();
+    }
+
+    const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    
+    const data = departments.map(dept => {
+        let totalRequired = 0;
+        let totalAssigned = 0;
+        
+        days.forEach(day => {
+            const tasks = (globalTasksData[day] || []).filter(task => task.department === dept);
+            const assignments = globalAssignmentsData[day] || {};
+            
+            tasks.forEach(task => {
+                const globalIndex = (globalTasksData[day] || []).indexOf(task);
+                totalRequired += task.requiredPeople;
+                totalAssigned += (assignments[globalIndex] || []).length;
+            });
+        });
+        
+        return totalRequired > 0 ? Math.round((totalAssigned / totalRequired) * 100) : 0;
+    });
+
+    chartInstances.departmentChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: departments,
+            datasets: [{
+                label: '充足率(%)',
+                data: data,
+                backgroundColor: departments.map(dept => getDepartmentColor(dept) + '80'),
+                borderColor: departments.map(dept => getDepartmentColor(dept)),
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 120,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+}
+
+function generateIndividualChart() {
+    const ctx = document.getElementById('individualChart');
+    if (!ctx) return;
+
+    // 既存チャートを破棄
+    if (chartInstances.individualChart) {
+        chartInstances.individualChart.destroy();
+    }
+
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const ceData = {};
+
+    // 各CEの業務時間を計算
+    CE_LIST.forEach(ce => {
+        ceData[ce.name] = 0;
+    });
+
+    days.forEach(day => {
+        const tasks = globalTasksData[day] || [];
+        const assignments = globalAssignmentsData[day] || {};
+        
+        tasks.forEach((task, index) => {
+            const assignedCEs = assignments[index] || [];
+            const duration = calculateTaskDuration(task.startTime, task.endTime);
+            
+            assignedCEs.forEach(ceName => {
+                if (ceData[ceName] !== undefined) {
+                    ceData[ceName] += duration;
+                }
+            });
+        });
+    });
+
+    const sortedData = Object.entries(ceData)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 15); // 上位15名表示
+
+    chartInstances.individualChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: sortedData.map(([name]) => name),
+            datasets: [{
+                label: '業務時間(時間)',
+                data: sortedData.map(([,hours]) => hours),
+                backgroundColor: 'rgba(76, 175, 80, 0.6)',
+                borderColor: 'rgba(76, 175, 80, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            scales: {
+                x: { beginAtZero: true }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+}
+
+function generateTimeSlotCharts() {
+    const timeSlots = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+    const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const dayLabels = ['月', '火', '水', '木', '金'];
+
+    // 時間帯別配置人数（部門別）
+    const ctxDept = document.getElementById('timeSlotChartDept');
+    if (ctxDept) {
+        if (chartInstances.timeSlotChartDept) {
+            chartInstances.timeSlotChartDept.destroy();
+        }
+
+        const deptData = calculateTimeSlotData(timeSlots, departments, 'department');
+        
+        chartInstances.timeSlotChartDept = new Chart(ctxDept, {
+            type: 'bar',
+            data: {
+                labels: timeSlots,
+                datasets: departments.map(dept => ({
+                    label: dept,
+                    data: timeSlots.map(slot => deptData[slot][dept] || 0),
+                    backgroundColor: getDepartmentColor(dept) + '80',
+                    borderColor: getDepartmentColor(dept),
+                    borderWidth: 1
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    // 時間帯別配置人数（曜日別）
+    const ctxDay = document.getElementById('timeSlotChartDay');
+    if (ctxDay) {
+        if (chartInstances.timeSlotChartDay) {
+            chartInstances.timeSlotChartDay.destroy();
+        }
+
+        const dayData = calculateTimeSlotData(timeSlots, days, 'day');
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'];
+        
+        chartInstances.timeSlotChartDay = new Chart(ctxDay, {
+            type: 'line',
+            data: {
+                labels: timeSlots,
+                datasets: days.map((day, index) => ({
+                    label: dayLabels[index],
+                    data: timeSlots.map(slot => dayData[slot][day] || 0),
+                    backgroundColor: colors[index] + '80',
+                    borderColor: colors[index],
+                    borderWidth: 2,
+                    fill: false
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+}
+
+// ========== ヘルパー関数 ==========
 function timeToMinutes(hhmm) {
     if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return 0;
     const [h, m] = hhmm.split(':').map(Number);
@@ -2155,15 +2482,385 @@ function formatDayDate(offset) {
     }
 }
 
-// 以下の関数は今後の部分修正で実装予定
-function generateAnalysis() {
-    showMessage('集計・分析機能は実装中です', 'info');
+function calculateTaskDuration(startTime, endTime) {
+    const start = timeToMinutes(startTime);
+    const end = timeToMinutes(endTime);
+    return Math.max(0, (end - start) / 60); // 時間単位で返す
 }
+
+function calculateTimeSlotData(timeSlots, groups, type) {
+    const result = {};
+    timeSlots.forEach(slot => {
+        result[slot] = {};
+        groups.forEach(group => result[slot][group] = 0);
+    });
+
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    
+    days.forEach(day => {
+        const tasks = globalTasksData[day] || [];
+        const assignments = globalAssignmentsData[day] || {};
+        
+        tasks.forEach((task, index) => {
+            const assignedCEs = assignments[index] || [];
+            const taskStart = timeToMinutes(task.startTime);
+            const taskEnd = timeToMinutes(task.endTime);
+            
+            timeSlots.forEach(slot => {
+                const slotStart = timeToMinutes(slot);
+                const slotEnd = slotStart + 60; // 1時間スロット
+                
+                // タスクとスロットの重なりをチェック
+                if (Math.max(taskStart, slotStart) < Math.min(taskEnd, slotEnd)) {
+                    if (type === 'department') {
+                        result[slot][task.department] = (result[slot][task.department] || 0) + assignedCEs.length;
+                    } else if (type === 'day') {
+                        result[slot][day] = (result[slot][day] || 0) + assignedCEs.length;
+                    }
+                }
+            });
+        });
+    });
+    
+    return result;
+}
+
+// ========== テンプレート機能 ==========
+async function saveTemplate() {
+    if (userRole === 'viewer') {
+        showMessage('テンプレート保存権限がありません', 'warning');
+        return;
+    }
+    
+    const templateName = prompt('テンプレート名を入力してください:');
+    if (!templateName || !templateName.trim()) {
+        showMessage('テンプレート名を入力してください', 'warning');
+        return;
+    }
+    
+    const templateData = {
+        name: templateName.trim(),
+        tasks: JSON.parse(JSON.stringify(globalTasksData)),
+        assignments: JSON.parse(JSON.stringify(globalAssignmentsData)),
+        ceList: JSON.parse(JSON.stringify(CE_LIST)),
+        createdBy: currentUser,
+        createdAt: new Date().toISOString()
+    };
+    
+    if (isFirebaseReady && database) {
+        try {
+            await database.ref(`${DATA_ROOT}/templates/${templateName.trim()}`).set(templateData);
+            showMessage('テンプレートを保存しました', 'success');
+            recordEditHistory('テンプレート保存', templateName.trim());
+            loadTemplateListUI();
+        } catch (error) {
+            console.error('テンプレート保存エラー:', error);
+            showMessage('テンプレート保存に失敗しました', 'error');
+        }
+    } else {
+        showMessage('Firebase接続が必要です', 'error');
+    }
+}
+
+async function showTemplateList() {
+    if (!isFirebaseReady || !database) {
+        showMessage('Firebase接続が必要です', 'error');
+        return;
+    }
+    
+    try {
+        const snapshot = await database.ref(`${DATA_ROOT}/templates`).once('value');
+        if (!snapshot.exists()) {
+            showMessage('保存されたテンプレートがありません', 'info');
+            return;
+        }
+        
+        const templates = snapshot.val();
+        const templateList = Object.keys(templates);
+        
+        let listHTML = '<div class="space-y-2">';
+        templateList.forEach(name => {
+            const template = templates[name];
+            listHTML += `
+                <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <div>
+                        <div class="font-bold">${name}</div>
+                        <div class="text-xs text-gray-500">作成: ${template.createdBy} (${new Date(template.createdAt).toLocaleDateString()})</div>
+                    </div>
+                    <div class="space-x-2">
+                        <button class="btn-primary text-xs" onclick="loadTemplate('${name}')">読込</button>
+                        <button class="bg-red-500 text-white px-2 py-1 rounded text-xs" onclick="deleteTemplate('${name}')">削除</button>
+                    </div>
+                </div>
+            `;
+        });
+        listHTML += '</div>';
+        
+        // 簡易モーダル表示
+        const modal = document.createElement('div');
+        modal.className = 'modal';
+        modal.style.display = 'block';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold">テンプレート一覧</h2>
+                    <button onclick="this.closest('.modal').remove()" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                ${listHTML}
+            </div>
+        `;
+        document.body.appendChild(modal);
+    } catch (error) {
+        console.error('テンプレート読込エラー:', error);
+        showMessage('テンプレート読込に失敗しました', 'error');
+    }
+}
+
+async function loadTemplate(templateName) {
+    if (userRole === 'viewer') {
+        showMessage('テンプレート読込権限がありません', 'warning');
+        return;
+    }
+    
+    if (!confirm(`テンプレート「${templateName}」を読み込みますか？\n現在のデータは上書きされます。`)) {
+        return;
+    }
+    
+    try {
+        const snapshot = await database.ref(`${DATA_ROOT}/templates/${templateName}`).once('value');
+        if (snapshot.exists()) {
+            const template = snapshot.val();
+            globalTasksData = template.tasks || globalTasksData;
+            globalAssignmentsData = template.assignments || globalAssignmentsData;
+            CE_LIST = template.ceList || CE_LIST;
+            
+            updateAllDisplays();
+            saveAllToFirebase();
+            showMessage('テンプレートを読み込みました', 'success');
+            recordEditHistory('テンプレート読込', templateName);
+            
+            // モーダルを閉じる
+            const modal = document.querySelector('.modal');
+            if (modal) modal.remove();
+        } else {
+            showMessage('テンプレートが見つかりません', 'error');
+        }
+    } catch (error) {
+        console.error('テンプレート読込エラー:', error);
+        showMessage('テンプレート読込に失敗しました', 'error');
+    }
+}
+
+async function deleteTemplate(templateName) {
+    if (userRole !== 'admin') {
+        showMessage('管理者権限が必要です', 'warning');
+        return;
+    }
+    
+    if (!confirm(`テンプレート「${templateName}」を削除しますか？`)) {
+        return;
+    }
+    
+    try {
+        await database.ref(`${DATA_ROOT}/templates/${templateName}`).remove();
+        showMessage('テンプレートを削除しました', 'success');
+        recordEditHistory('テンプレート削除', templateName);
+        showTemplateList(); // 一覧を再表示
+    } catch (error) {
+        console.error('テンプレート削除エラー:', error);
+        showMessage('テンプレート削除に失敗しました', 'error');
+    }
+}
+
+async function loadTemplateListUI() {
+    if (!isFirebaseReady || !database) return;
+    
+    try {
+        const snapshot = await database.ref(`${DATA_ROOT}/templates`).once('value');
+        const container = document.getElementById('savedTemplates');
+        if (!container) return;
+        
+        if (!snapshot.exists()) {
+            container.innerHTML = '<div class="text-xs text-gray-500">保存済みテンプレートなし</div>';
+            return;
+        }
+        
+        const templates = snapshot.val();
+        const templateList = Object.keys(templates);
+        
+        container.innerHTML = templateList.map(name => `
+            <div class="flex justify-between items-center p-1 bg-gray-100 rounded text-xs">
+                <span>${name}</span>
+                <button class="text-blue-600 hover:text-blue-800" onclick="loadTemplate('${name}')">読込</button>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('テンプレート一覧読込エラー:', error);
+    }
+}
+
+// ========== CE編集機能 ==========
 function openCEEdit(name, index) {
-    showMessage('CE編集機能は実装中です', 'info');
+    if (userRole === 'viewer') {
+        showMessage('編集権限がありません', 'warning');
+        return;
+    }
+    
+    editingCEIndex = index;
+    const ce = CE_LIST[index];
+    
+    document.getElementById('editCEName').value = ce.name;
+    document.getElementById('editCEWorkType').value = ce.workType;
+    
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    days.forEach(day => {
+        const select = document.getElementById(`ceStatus_${day}`);
+        if (select) {
+            select.value = (ce.status && ce.status[day]) ? ce.status[day] : '';
+        }
+    });
+    
+    showModal('ceEditModal');
 }
-/* ...（省略：他のプレースホルダー関数）... */
-// ========= PLACEHOLDER FUNCTIONS END =========
+
+function saveCEFromModal() {
+    if (editingCEIndex === -1) return;
+    
+    const ce = CE_LIST[editingCEIndex];
+    ce.name = document.getElementById('editCEName').value.trim();
+    ce.workType = document.getElementById('editCEWorkType').value;
+    
+    if (!ce.status) ce.status = {};
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    days.forEach(day => {
+        const select = document.getElementById(`ceStatus_${day}`);
+        if (select) {
+            ce.status[day] = select.value;
+        }
+    });
+    
+    updateAllDisplays();
+    saveAllToFirebase();
+    closeModal('ceEditModal');
+    recordEditHistory('CE編集', ce.name);
+    showMessage('CEを更新しました', 'success');
+}
+
+// ========== 管理者機能 ==========
+function openCEManagement() {
+    if (userRole !== 'admin') {
+        showMessage('管理者権限が必要です', 'warning');
+        return;
+    }
+    showMessage('CEリスト管理機能は次回アップデートで実装予定です', 'info');
+}
+
+function copyFullHtml() {
+    if (userRole !== 'admin') {
+        showMessage('管理者権限が必要です', 'warning');
+        return;
+    }
+    
+    try {
+        const html = document.documentElement.outerHTML;
+        navigator.clipboard.writeText(html).then(() => {
+            showMessage('HTMLをクリップボードにコピーしました', 'success');
+        });
+    } catch (error) {
+        showMessage('HTMLコピーに失敗しました', 'error');
+    }
+}
+
+async function loadChangeHistory() {
+    const container = document.getElementById('changeHistory');
+    if (!container || !isFirebaseReady || !database) return;
+    
+    try {
+        const snapshot = await database.ref(`${DATA_ROOT}/editHistory`).limitToLast(20).once('value');
+        if (!snapshot.exists()) {
+            container.innerHTML = '<div class="text-sm text-gray-500">変更履歴なし</div>';
+            return;
+        }
+        
+        const history = [];
+        snapshot.forEach(child => {
+            history.unshift(child.val());
+        });
+        
+        container.innerHTML = history.map(item => `
+            <div class="p-2 bg-gray-50 rounded text-xs">
+                <div class="font-bold">${item.action} ${item.details || ''}</div>
+                <div class="text-gray-500">${item.user} - ${new Date(item.timestamp).toLocaleString()}</div>
+            </div>
+        `).join('');
+    } catch (error) {
+        container.innerHTML = '<div class="text-sm text-red-500">読込エラー</div>';
+    }
+}
+
+async function loadLoginStats() {
+    if (userRole !== 'admin') return;
+    
+    const historyContainer = document.getElementById('loginHistoryList');
+    const statsContainer = document.getElementById('loginStats');
+    if (!historyContainer || !statsContainer || !isFirebaseReady || !database) return;
+    
+    try {
+        const snapshot = await database.ref(`${DATA_ROOT}/loginHistory`).limitToLast(100).once('value');
+        if (!snapshot.exists()) {
+            historyContainer.innerHTML = '<div class="text-xs text-gray-500">履歴なし</div>';
+            statsContainer.innerHTML = '<div class="text-xs text-gray-500">統計なし</div>';
+            return;
+        }
+        
+        const loginEvents = [];
+        snapshot.forEach(child => {
+            loginEvents.unshift(child.val());
+        });
+        
+        // 履歴表示
+        historyContainer.innerHTML = loginEvents.slice(0, 20).map(event => `
+            <div class="text-xs bg-white bg-opacity-70 border rounded px-2 py-1">
+                ${new Date(event.at).toLocaleString()} - ${event.user} (${event.role}) : ${event.type}
+            </div>
+        `).join('');
+        
+        // 統計表示
+        const userStats = {};
+        loginEvents.forEach(event => {
+            if (event.type === 'login') {
+                userStats[event.user] = (userStats[event.user] || 0) + 1;
+            }
+        });
+        
+        statsContainer.innerHTML = Object.entries(userStats)
+            .sort(([,a], [,b]) => b - a)
+            .map(([user, count]) => `
+                <div class="text-xs bg-white bg-opacity-70 border rounded px-2 py-1 flex justify-between">
+                    <span>${user}</span><span>${count}回</span>
+                </div>
+            `).join('');
+    } catch (error) {
+        historyContainer.innerHTML = '<div class="text-xs text-red-500">読込エラー</div>';
+        statsContainer.innerHTML = '<div class="text-xs text-red-500">読込エラー</div>';
+    }
+}
+
+// ========== その他の基本機能 ==========
+function addNewCE() {
+    showMessage('CE追加機能は次回アップデートで実装予定です', 'info');
+}
+
+function saveCEManagement() {
+    showMessage('CE管理保存機能は次回アップデートで実装予定です', 'info');
+}
+
+// グローバル関数の登録
+window.loadTemplate = loadTemplate;
+window.deleteTemplate = deleteTemplate;
+// ========= COMPLETE FUNCTIONS END =========
     </script>
     <!-- ========= JAVASCRIPT END ========= -->
 </body>
