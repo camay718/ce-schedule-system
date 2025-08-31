@@ -2010,70 +2010,211 @@
         window.printCanvas = printCanvas;
         // ========= GLOBAL FUNCTIONS END =========
 
-        // ========= PLACEHOLDER FUNCTIONS START (行数: 1952-2000) =========
-        // 以下の関数は今後の部分修正で実装予定
-        function generateTimeline() {
-            // タイムライン生成機能（実装予定）
-            showMessage('タイムライン機能は実装中です', 'info');
-        }
+      // ========= TIMELINE FUNCTIONS START (行数: 1952-2000) =========
+function generateTimeline() {
+    const container = document.getElementById('timelineContainer');
+    if (!container) return;
 
-        function generateAnalysis() {
-            // 分析機能（実装予定）
-            showMessage('集計・分析機能は実装中です', 'info');
-        }
+    container.innerHTML = '';
+    
+    // CEごとの週間データを生成
+    const timelineData = {};
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜'];
+    
+    // 各CEの週間スケジュールを構築
+    CE_LIST.forEach(ce => {
+        timelineData[ce.name] = { ce: ce, schedule: {} };
+        days.forEach(day => {
+            timelineData[ce.name].schedule[day] = [];
+        });
+    });
+    
+    // タスク割り当てデータを収集
+    days.forEach(day => {
+        const tasks = globalTasksData[day] || [];
+        const assignments = globalAssign**個人別タイムライン機能・分析機能の実装方針と具体的手順**
 
-        function openCEEdit(name, index) {
-            // CE編集機能（実装予定）
-            showMessage('CE編集機能は実装中です', 'info');
-        }
+---
 
-        function saveCEFromModal() {
-            // CE保存機能（実装予定）
-            showMessage('CE保存機能は実装中です', 'info');
-        }
+**1. 機能概要・導入方針**
 
-        function saveTemplate() {
-            // テンプレート保存機能（実装予定）
-            showMessage('テンプレート機能は実装中です', 'info');
-        }
+CEスケジュール管理システムにおける「個人別タイムライン機能」は、各CEスタッフが1週間のうちどの業務にどの時間帯で割り当てられているかを、視覚的・直感的に把握できるようにするものです。  
+現場実務での使いやすさ（視覚化）と、管理・分析での利便性（サマリやグラフ）を両立するため、  
+- **タイムラインはガントチャート風バー付きカード表示（gpt-5方式）**
+- **分析・集計機能はサマリ表・Chart.jsグラフ（claude-sonnet-4方式）**
+を順次追加していくのがベストプラクティスです。
 
-        function showTemplateList() {
-            // テンプレート一覧機能（実装予定）
-            showMessage('テンプレート機能は実装中です', 'info');
-        }
+---
 
-        function loadTemplateListUI() {
-            // テンプレートUI読込（実装予定）
-        }
+**2. 実装手順**
 
-        function openCEManagement() {
-            // CEリスト管理機能（実装予定）
-            showMessage('CEリスト管理機能は実装中です', 'info');
-        }
+**2-1. タイムライン機能（gpt-5方式）の追加**
 
-        function copyFullHtml() {
-            // HTMLコピー機能（実装予定）
-            showMessage('HTMLコピー機能は実装中です', 'info');
-        }
+1. **置換範囲の確認**  
+   既存の`index.html`内、  
+   `// ========= PLACEHOLDER FUNCTIONS START (行数: 1952-2000) =========`  
+   から  
+   `// ========= PLACEHOLDER FUNCTIONS END =========`  
+   までを**すべて下記コードで置換**します。
 
-        function loadChangeHistory() {
-            // 変更履歴読込機能（実装予定）
-        }
+2. **置換コード例（抜粋・解説付き）**
 
-        function loadLoginStats() {
-            // ログイン統計機能（実装予定）
-        }
+```javascript
+// ========= PLACEHOLDER FUNCTIONS START (行数: 1952-2000) =========
+// タイムライン生成（実装）
+function generateTimeline() {
+    const container = document.getElementById('timelineContainer');
+    if (!container) return;
+    container.innerHTML = '';
 
-        function addNewCE() {
-            // CE追加機能（実装予定）
-            showMessage('CE追加機能は実装中です', 'info');
-        }
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const dayLabels = ['月', '火', '水', '木', '金'];
 
-        function saveCEManagement() {
-            // CE管理保存機能（実装予定）
-            showMessage('CE管理保存機能は実装中です', 'info');
-        }
-        // ========= PLACEHOLDER FUNCTIONS END =========
+    // CEごとの曜日別割り当てを作成
+    const ceMap = {};
+    CE_LIST.forEach(ce => {
+        ceMap[ce.name] = {};
+        days.forEach(d => ceMap[ce.name][d] = []);
+    });
+
+    days.forEach(day => {
+        const tasks = globalTasksData[day] || [];
+        const assignments = globalAssignmentsData[day] || {};
+        tasks.forEach((task, taskIndex) => {
+            const assignedCEs = assignments[taskIndex] || [];
+            assignedCEs.forEach(ceName => {
+                if (!ceMap[ceName]) {
+                    ceMap[ceName] = {};
+                    days.forEach(d => ceMap[ceName][d] = []);
+                }
+                ceMap[ceName][day].push({
+                    name: task.name,
+                    department: task.department,
+                    startTime: task.startTime,
+                    endTime: task.endTime
+                });
+            });
+        });
+    });
+
+    // 表示時間範囲（07:00-19:00）
+    const timelineStart = timeToMinutes('07:00');
+    const timelineEnd = timeToMinutes('19:00');
+    const totalMinutes = timelineEnd - timelineStart;
+
+    // 各CEカードを生成（2列は既存のCSSグリッドで対応）
+    CE_LIST.forEach(ce => {
+        const ceCard = document.createElement('div');
+        ceCard.className = 'glassmorphism rounded-2xl p-4';
+
+        const workTypeClass = `worktype-${(ce.workType || '').toLowerCase()}`;
+        ceCard.innerHTML = `
+            <div class="flex justify-between items-center mb-2">
+                <div class="font-bold text-lg">${ce.name}</div>
+                <div class="text-xs px-2 py-1 rounded ${workTypeClass}"
+                     style="background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08);">
+                    ${ce.workType || ''}
+                </div>
+            </div>
+            <div class="text-xs text-gray-500 mb-3">表示範囲: 07:00 - 19:00</div>
+        `;
+
+        const body = document.createElement('div');
+        body.className = 'space-y-3';
+
+        days.forEach((day, idx) => {
+            const items = (ceMap[ce.name][day] || []).slice().sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+
+            const dayRow = document.createElement('div');
+            dayRow.className = 'p-3 rounded-lg';
+            dayRow.style.background = 'rgba(255,255,255,0.8)';
+            dayRow.style.border = '1px solid rgba(0,0,0,0.06)';
+
+            const status = ce.status ? (ce.status[day] || '') : '';
+            const statusBadgeHtml = status ? `<span class="ml-2 px-2 py-0.5 rounded text-[10px] font-bold text-white status-${status}">${status}</span>` : '';
+
+            const header = document.createElement('div');
+            header.className = 'flex justify-between items-center mb-2';
+            header.innerHTML = `
+                <div class="text-sm font-bold">${dayLabels[idx]}曜 ${formatDayDate(idx)} ${statusBadgeHtml}</div>
+                <div class="text-xs text-gray-500">${items.length ? items.length + '件' : '未配置'}</div>
+            `;
+            dayRow.appendChild(header);
+
+            // 業務チップ
+            if (items.length) {
+                const chips = document.createElement('div');
+                chips.className = 'flex flex-wrap gap-2 mb-2';
+                chips.innerHTML = items.map(item => `
+                    <span class="text-xs px-2 py-1 rounded"
+                          title="${item.name} ${item.startTime}-${item.endTime}"
+                          style="background: rgba(0,0,0,0.04); border-left:4px solid ${getDepartmentColor(item.department)};">
+                        ${item.department} ${item.startTime}-${item.endTime}
+                    </span>
+                `).join('');
+                dayRow.appendChild(chips);
+            }
+
+            // タイムラインバー
+            const track = document.createElement('div');
+            track.className = 'relative w-full h-3 bg-gray-200 rounded';
+            track.style.overflow = 'hidden';
+
+            items.forEach(item => {
+                const s = Math.max(timeToMinutes(item.startTime), timelineStart);
+                const e = Math.min(timeToMinutes(item.endTime), timelineEnd);
+                if (e <= timelineStart || s >= timelineEnd) return;
+
+                const left = ((s - timelineStart) / totalMinutes) * 100;
+                const width = Math.max(2, ((e - s) / totalMinutes) * 100);
+
+                const bar = document.createElement('div');
+                bar.className = 'absolute top-0 h-3';
+                bar.style.left = left + '%';
+                bar.style.width = width + '%';
+                bar.style.background = getDepartmentColor(item.department);
+                bar.style.opacity = '0.85';
+                bar.title = `${item.name} (${item.startTime}-${item.endTime})`;
+                track.appendChild(bar);
+            });
+
+            dayRow.appendChild(track);
+            body.appendChild(dayRow);
+        });
+
+        ceCard.appendChild(body);
+        container.appendChild(ceCard);
+    });
+}
+
+function timeToMinutes(hhmm) {
+    if (!hhmm || !/^\d{1,2}:\d{2}$/.test(hhmm)) return 0;
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+}
+
+function formatDayDate(offset) {
+    try {
+        const d = new Date(weekStartDate);
+        d.setDate(weekStartDate.getDate() + offset);
+        const mm = d.getMonth() + 1;
+        const dd = d.getDate();
+        return `(${mm}/${dd})`;
+    } catch {
+        return '';
+    }
+}
+
+// 以下の関数は今後の部分修正で実装予定
+function generateAnalysis() {
+    showMessage('集計・分析機能は実装中です', 'info');
+}
+function openCEEdit(name, index) {
+    showMessage('CE編集機能は実装中です', 'info');
+}
+/* ...（省略：他のプレースホルダー関数）... */
+// ========= PLACEHOLDER FUNCTIONS END =========
     </script>
     <!-- ========= JAVASCRIPT END ========= -->
 </body>
