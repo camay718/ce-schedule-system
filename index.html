@@ -1536,36 +1536,83 @@
         }
 
         function updatePlacementSummary() {
-            const container = document.getElementById('summaryContent');
-            if (!container) return;
+    const container = document.getElementById('summaryContent');
+    if (!container) return;
 
-            const day = currentActiveDay;
-            if (day === 'overview') {
-                container.innerHTML = '<div class="text-blue-600">全体表示中</div>';
-                return;
-            }
+    const day = currentActiveDay;
+    if (day === 'overview') {
+        container.innerHTML = '<div class="text-blue-600">全体表示中</div>';
+        return;
+    }
 
-            const tasks = globalTasksData[day] || [];
-            const assignments = globalAssignmentsData[day] || {};
+    const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
+    const tasks = globalTasksData[day] || [];
+    const assignments = globalAssignmentsData[day] || {};
 
-            let totalRequired = 0;
-            let totalAssigned = 0;
+    // 全体集計
+    let totalRequired = 0;
+    let totalAssigned = 0;
+    let totalTasks = tasks.length;
+    let totalCount = 0;
 
-            tasks.forEach((task, index) => {
-                totalRequired += task.requiredPeople;
-                totalAssigned += (assignments[index] || []).length;
-            });
+    tasks.forEach((task, index) => {
+        totalRequired += task.requiredPeople;
+        totalAssigned += (assignments[index] || []).length;
+        totalCount += (task.count || 0);
+    });
 
-            const percentage = totalRequired > 0 ? Math.round((totalAssigned / totalRequired) * 100) : 0;
-            const colorClass = percentage >= 100 ? 'text-green-700' : percentage >= 80 ? 'text-yellow-700' : 'text-red-700';
+    const overallPct = totalRequired > 0 ? Math.round((totalAssigned / totalRequired) * 100) : 0;
+    const overallColor = overallPct >= 100 ? 'text-green-700' : overallPct >= 80 ? 'text-yellow-700' : 'text-red-700';
 
-            container.innerHTML = `
-                <div class="text-center">
-                    <div class="${colorClass}">配置状況: ${totalAssigned}/${totalRequired}名 (${percentage}%)</div>
-                    <div class="text-xs text-gray-600">${tasks.length}件の業務</div>
-                </div>
-            `;
-        }
+    // CE配置可能数・不在数計算
+    const totalCE = CE_LIST.length;
+    let absent休 = 0, absent非 = 0, absent出 = 0;
+    CE_LIST.forEach(ce => {
+        const status = (ce.status && ce.status[day]) ? ce.status[day] : '';
+        if (status === '休') absent休++;
+        if (status === '非') absent非++;
+        if (status === '出') absent出++;
+    });
+    const absentTotal = absent休 + absent非 + absent出;
+    const available = totalCE - absentTotal;
+
+    // 部門別サマリ生成
+    const deptCards = departments.map(dept => {
+        const deptTasks = tasks.filter(t => t.department === dept);
+        let req = 0, asg = 0, cnt = 0;
+        deptTasks.forEach(t => {
+            const idx = tasks.indexOf(t);
+            req += (t.requiredPeople || 0);
+            asg += ((assignments[idx] || []).length);
+            cnt += (t.count || 0);
+        });
+        const pct = req > 0 ? Math.round((asg / req) * 100) : 0;
+        const color = pct >= 100 ? 'text-green-700' : pct >= 80 ? 'text-yellow-700' : 'text-red-700';
+        
+        if (deptTasks.length === 0) return '';
+        
+        return `
+            <div class="p-2 rounded bg-white bg-opacity-80 text-xs">
+                <div class="font-bold mb-1">${dept}</div>
+                <div class="${color}">配置: ${asg}/${req} (${pct}%)</div>
+                <div class="text-gray-600">業務: ${deptTasks.length}件 / 件数: ${cnt}</div>
+            </div>
+        `;
+    }).filter(card => card).join('');
+
+    container.innerHTML = `
+        <div class="text-center mb-2">
+            <div class="${overallColor} font-bold">全体: ${totalAssigned}/${totalRequired}名 (${overallPct}%)</div>
+            <div class="text-xs text-gray-600">業務: ${totalTasks}件 / 件数合計: ${totalCount}</div>
+            <div class="text-xs text-gray-700 mt-1">
+                配置可能: <span class="font-bold text-green-600">${available}/${totalCE}名</span> | 
+                不在: <span class="font-bold text-red-600">${absentTotal}名</span>
+                <span class="text-gray-500">(休:${absent休} 非:${absent非} 出:${absent出})</span>
+            </div>
+        </div>
+        ${deptCards ? `<div class="grid grid-cols-2 md:grid-cols-3 gap-1 mt-2">${deptCards}</div>` : ''}
+    `;
+}
         // ========= TASK DISPLAY FUNCTIONS END =========
 
         // ========= WEEKLY OVERVIEW START (行数: 1502-1580) =========
@@ -1906,12 +1953,17 @@
         }
 
         function updateAllDisplays() {
-            displayCEList();
-            renderDaySections();
-            updatePlacementSummary();
-            if (currentActiveDay === 'overview') generateWeeklyOverview();
-            if (document.getElementById('analysisContent').style.display === 'block') generateAnalysis();
-        }
+    console.log('🔄 全表示を更新中...');
+    displayCEList();
+    renderDaySections();
+    updatePlacementSummary();
+    if (currentActiveDay === 'overview') generateWeeklyOverview();
+    if (document.getElementById('analysisContent').style.display === 'block') {
+        setTimeout(generateAnalysis, 50); // Chart.js描画のため少し遅延
+    }
+    setupPermissions(); // 権限設定を再適用（テンプレート読込後の不具合解決）
+    console.log('✅ 全表示更新完了');
+}
 
         function updateSyncTime() {
             const currentTime = new Date().toLocaleTimeString('ja-JP', { 
@@ -2040,7 +2092,7 @@
         window.printCanvas = printCanvas;
         // ========= GLOBAL FUNCTIONS END =========
 
-  // ========= COMPLETE FUNCTIONS START (行数: 1952-2000) =========
+// ========= COMPLETE FUNCTIONS START (行数: 1952-2545) =========
 // Chart.jsインスタンス管理
 let chartInstances = {
     departmentChart: null,
@@ -2192,14 +2244,35 @@ function buildPlacementSummaryTable() {
     const dayLabels = ['月', '火', '水', '木', '金'];
     const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
 
+    // 各曜日の不在CE数を計算
+    const getAbsentCECount = (day) => {
+        return CE_LIST.filter(ce => {
+            const status = ce.status && ce.status[day] ? ce.status[day] : '';
+            return ['休', '非', '出'].includes(status);
+        }).length;
+    };
+
+    // 配置可能CE数を計算
+    const getAvailableCECount = (day) => {
+        return CE_LIST.length - getAbsentCECount(day);
+    };
+
     let tableHTML = `
         <div class="overflow-x-auto">
             <table class="w-full border-collapse border border-gray-300 text-sm">
                 <thead>
                     <tr class="bg-gray-100">
-                        <th class="border border-gray-300 p-2 text-left">部門</th>
-                        ${dayLabels.map(day => `<th class="border border-gray-300 p-2 text-center">${day}</th>`).join('')}
-                        <th class="border border-gray-300 p-2 text-center">週合計</th>
+                        <th class="border border-gray-300 p-2 text-left" rowspan="2">部門</th>
+                        ${dayLabels.map(day => `<th class="border border-gray-300 p-2 text-center" colspan="2">${day}</th>`).join('')}
+                        <th class="border border-gray-300 p-2 text-center" colspan="2">週合計</th>
+                    </tr>
+                    <tr class="bg-gray-50">
+                        ${dayLabels.map(() => `
+                            <th class="border border-gray-300 p-1 text-xs">配置/必要</th>
+                            <th class="border border-gray-300 p-1 text-xs">業務数</th>
+                        `).join('')}
+                        <th class="border border-gray-300 p-1 text-xs">配置/必要</th>
+                        <th class="border border-gray-300 p-1 text-xs">業務数</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2207,10 +2280,12 @@ function buildPlacementSummaryTable() {
 
     let totalWeekRequired = 0;
     let totalWeekAssigned = 0;
+    let totalWeekTasks = 0;
 
     departments.forEach(dept => {
         let deptWeekRequired = 0;
         let deptWeekAssigned = 0;
+        let deptWeekTasks = 0;
         let rowHTML = `<tr><td class="border border-gray-300 p-2 font-bold" style="background: ${getDepartmentColor(dept)}20">${dept}</td>`;
 
         days.forEach(day => {
@@ -2219,6 +2294,7 @@ function buildPlacementSummaryTable() {
             
             let dayRequired = 0;
             let dayAssigned = 0;
+            let dayTasks = tasks.length;
             
             tasks.forEach(task => {
                 const globalIndex = (globalTasksData[day] || []).indexOf(task);
@@ -2228,24 +2304,39 @@ function buildPlacementSummaryTable() {
 
             deptWeekRequired += dayRequired;
             deptWeekAssigned += dayAssigned;
+            deptWeekTasks += dayTasks;
 
             const percentage = dayRequired > 0 ? Math.round((dayAssigned / dayRequired) * 100) : 0;
             const colorClass = percentage >= 100 ? 'text-green-600' : percentage >= 80 ? 'text-yellow-600' : 'text-red-600';
             
-            rowHTML += `<td class="border border-gray-300 p-2 text-center ${colorClass}">${dayAssigned}/${dayRequired} (${percentage}%)</td>`;
+            rowHTML += `
+                <td class="border border-gray-300 p-1 text-center ${colorClass}">
+                    <div class="font-bold">${dayAssigned}/${dayRequired}</div>
+                    <div class="text-xs">(${percentage}%)</div>
+                </td>
+                <td class="border border-gray-300 p-1 text-center text-gray-600">${dayTasks}</td>
+            `;
         });
 
         totalWeekRequired += deptWeekRequired;
         totalWeekAssigned += deptWeekAssigned;
+        totalWeekTasks += deptWeekTasks;
 
         const weekPercentage = deptWeekRequired > 0 ? Math.round((deptWeekAssigned / deptWeekRequired) * 100) : 0;
         const weekColorClass = weekPercentage >= 100 ? 'text-green-600' : weekPercentage >= 80 ? 'text-yellow-600' : 'text-red-600';
-        rowHTML += `<td class="border border-gray-300 p-2 text-center font-bold ${weekColorClass}">${deptWeekAssigned}/${deptWeekRequired} (${weekPercentage}%)</td></tr>`;
+        
+        rowHTML += `
+            <td class="border border-gray-300 p-1 text-center font-bold ${weekColorClass}">
+                <div class="font-bold">${deptWeekAssigned}/${deptWeekRequired}</div>
+                <div class="text-xs">(${weekPercentage}%)</div>
+            </td>
+            <td class="border border-gray-300 p-1 text-center font-bold text-gray-700">${deptWeekTasks}</td>
+        </tr>`;
         
         tableHTML += rowHTML;
     });
 
-    // 合計行
+    // 全体合計行
     const totalPercentage = totalWeekRequired > 0 ? Math.round((totalWeekAssigned / totalWeekRequired) * 100) : 0;
     const totalColorClass = totalPercentage >= 100 ? 'text-green-600' : totalPercentage >= 80 ? 'text-yellow-600' : 'text-red-600';
     
@@ -2254,11 +2345,64 @@ function buildPlacementSummaryTable() {
                 <tfoot>
                     <tr class="bg-gray-50 font-bold">
                         <td class="border border-gray-300 p-2">全体合計</td>
-                        <td colspan="${days.length}" class="border border-gray-300 p-2"></td>
-                        <td class="border border-gray-300 p-2 text-center ${totalColorClass}">${totalWeekAssigned}/${totalWeekRequired} (${totalPercentage}%)</td>
+                        <td colspan="${days.length * 2}" class="border border-gray-300 p-2 text-center text-gray-600">部門別合計は上記参照</td>
+                        <td class="border border-gray-300 p-1 text-center ${totalColorClass}">
+                            <div class="font-bold">${totalWeekAssigned}/${totalWeekRequired}</div>
+                            <div class="text-xs">(${totalPercentage}%)</div>
+                        </td>
+                        <td class="border border-gray-300 p-1 text-center font-bold text-gray-700">${totalWeekTasks}</td>
                     </tr>
                 </tfoot>
             </table>
+        </div>
+
+        <!-- CE配置可能数・不在数サマリ -->
+        <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glassmorphism rounded-xl p-4">
+                <h4 class="font-bold mb-3 text-center">配置可能CE数</h4>
+                <div class="grid grid-cols-5 gap-2 text-sm">
+                    ${days.map((day, idx) => {
+                        const available = getAvailableCECount(day);
+                        const total = CE_LIST.length;
+                        const percentage = Math.round((available / total) * 100);
+                        const colorClass = percentage >= 90 ? 'text-green-600' : percentage >= 70 ? 'text-yellow-600' : 'text-red-600';
+                        return `
+                            <div class="text-center p-2 bg-white bg-opacity-50 rounded">
+                                <div class="font-bold">${dayLabels[idx]}</div>
+                                <div class="${colorClass} font-bold">${available}/${total}</div>
+                                <div class="text-xs text-gray-600">(${percentage}%)</div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
+            
+            <div class="glassmorphism rounded-xl p-4">
+                <h4 class="font-bold mb-3 text-center">不在CE数</h4>
+                <div class="grid grid-cols-5 gap-2 text-sm">
+                    ${days.map((day, idx) => {
+                        const absent = getAbsentCECount(day);
+                        const absentList = CE_LIST.filter(ce => {
+                            const status = ce.status && ce.status[day] ? ce.status[day] : '';
+                            return ['休', '非', '出'].includes(status);
+                        });
+                        const statusCounts = { '休': 0, '非': 0, '出': 0 };
+                        absentList.forEach(ce => {
+                            const status = ce.status[day];
+                            if (statusCounts[status] !== undefined) statusCounts[status]++;
+                        });
+                        return `
+                            <div class="text-center p-2 bg-white bg-opacity-50 rounded">
+                                <div class="font-bold">${dayLabels[idx]}</div>
+                                <div class="text-red-600 font-bold">${absent}名</div>
+                                <div class="text-xs text-gray-600" title="休み:${statusCounts['休']} 非番:${statusCounts['非']} 出張:${statusCounts['出']}">
+                                    休${statusCounts['休']} 非${statusCounts['非']} 出${statusCounts['出']}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            </div>
         </div>
     `;
     
@@ -2340,40 +2484,90 @@ function generateIndividualChart() {
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
     const ceData = {};
 
-    // 各CEの業務時間を計算
+    // 全CEの初期化
     CE_LIST.forEach(ce => {
-        ceData[ce.name] = 0;
+        ceData[ce.name] = { totalHours: 0, daySchedules: {} };
+        days.forEach(day => {
+            ceData[ce.name].daySchedules[day] = [];
+        });
     });
 
+    // 各CEの曜日別業務スケジュールを収集
     days.forEach(day => {
         const tasks = globalTasksData[day] || [];
         const assignments = globalAssignmentsData[day] || {};
         
         tasks.forEach((task, index) => {
             const assignedCEs = assignments[index] || [];
-            const duration = calculateTaskDuration(task.startTime, task.endTime);
             
             assignedCEs.forEach(ceName => {
-                if (ceData[ceName] !== undefined) {
-                    ceData[ceName] += duration;
+                if (ceData[ceName]) {
+                    ceData[ceName].daySchedules[day].push({
+                        startTime: task.startTime,
+                        endTime: task.endTime,
+                        name: task.name,
+                        department: task.department
+                    });
                 }
             });
         });
     });
 
+    // 各CEの重複を除いた実労働時間を計算（タイムスロット方式）
+    Object.keys(ceData).forEach(ceName => {
+        let totalHours = 0;
+        
+        days.forEach(day => {
+            const dayTasks = ceData[ceName].daySchedules[day];
+            if (dayTasks.length === 0) return;
+            
+            // 1分単位でタイムスロットを記録（重複除外）
+            const timeSlots = new Set();
+            
+            dayTasks.forEach(task => {
+                const startMinutes = timeToMinutes(task.startTime);
+                const endMinutes = timeToMinutes(task.endTime);
+                
+                // 1分単位でタイムスロットを記録
+                for (let minute = startMinutes; minute < endMinutes; minute++) {
+                    timeSlots.add(minute);
+                }
+            });
+            
+            // 実労働時間を加算（重複除外済み）
+            totalHours += timeSlots.size / 60; // 分を時間に変換
+        });
+        
+        ceData[ceName].totalHours = Math.round(totalHours * 10) / 10; // 小数点1桁で丸める
+    });
+
+    // 労働時間でソートして全員表示
     const sortedData = Object.entries(ceData)
-        .sort(([,a], [,b]) => b - a)
-        .slice(0, 15); // 上位15名表示
+        .map(([name, data]) => [name, data.totalHours])
+        .sort(([,a], [,b]) => b - a);
+
+    const labels = sortedData.map(([name]) => name);
+    const data = sortedData.map(([,hours]) => hours);
+    
+    // 色分け（労働時間に応じて）
+    const backgroundColors = data.map(hours => {
+        if (hours === 0) return 'rgba(200, 200, 200, 0.6)'; // グレー：未配置
+        if (hours >= 30) return 'rgba(244, 67, 54, 0.6)';   // 赤：過労働
+        if (hours >= 20) return 'rgba(255, 193, 7, 0.6)';   // 黄：多い
+        return 'rgba(76, 175, 80, 0.6)';                    // 緑：適正
+    });
+    
+    const borderColors = backgroundColors.map(color => color.replace('0.6', '1'));
 
     chartInstances.individualChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: sortedData.map(([name]) => name),
+            labels: labels,
             datasets: [{
-                label: '業務時間(時間)',
-                data: sortedData.map(([,hours]) => hours),
-                backgroundColor: 'rgba(76, 175, 80, 0.6)',
-                borderColor: 'rgba(76, 175, 80, 1)',
+                label: '実労働時間(時間)',
+                data: data,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
                 borderWidth: 1
             }]
         },
@@ -2382,10 +2576,36 @@ function generateIndividualChart() {
             maintainAspectRatio: false,
             indexAxis: 'y',
             scales: {
-                x: { beginAtZero: true }
+                x: { 
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: '時間（重複除外済み）'
+                    }
+                }
             },
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const ceName = context.label;
+                            const hours = context.parsed.x;
+                            const ceInfo = ceData[ceName];
+                            let tooltip = `実労働時間: ${hours}時間`;
+                            
+                            // 各曜日の業務数を追加
+                            const dayTasks = days.map(day => ceInfo.daySchedules[day].length);
+                            const totalTasks = dayTasks.reduce((sum, count) => sum + count, 0);
+                            if (totalTasks > 0) {
+                                tooltip += `\n総業務数: ${totalTasks}件`;
+                                tooltip += `\n曜日別: 月${dayTasks[0]} 火${dayTasks[1]} 水${dayTasks[2]} 木${dayTasks[3]} 金${dayTasks[4]}`;
+                            }
+                            
+                            return tooltip;
+                        }
+                    }
+                }
             }
         }
     });
@@ -2480,12 +2700,6 @@ function formatDayDate(offset) {
     } catch {
         return '';
     }
-}
-
-function calculateTaskDuration(startTime, endTime) {
-    const start = timeToMinutes(startTime);
-    const end = timeToMinutes(endTime);
-    return Math.max(0, (end - start) / 60); // 時間単位で返す
 }
 
 function calculateTimeSlotData(timeSlots, groups, type) {
@@ -2596,15 +2810,16 @@ async function showTemplateList() {
         });
         listHTML += '</div>';
         
-        // 簡易モーダル表示
+        // 固有IDを持つテンプレート用モーダル
         const modal = document.createElement('div');
         modal.className = 'modal';
+        modal.id = 'templateModal';
         modal.style.display = 'block';
         modal.innerHTML = `
             <div class="modal-content">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold">テンプレート一覧</h2>
-                    <button onclick="this.closest('.modal').remove()" class="text-gray-500 hover:text-gray-700">
+                    <button onclick="document.getElementById('templateModal').remove()" class="text-gray-500 hover:text-gray-700">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
@@ -2624,7 +2839,7 @@ async function loadTemplate(templateName) {
         return;
     }
     
-    if (!confirm(`テンプレート「${templateName}」を読み込みますか？\n現在のデータは上書きされます。`)) {
+    if (!confirm(`テンプレート「${templateName}」を読み込みますか？\n現在のスケジュールに業務が追加されます。\n（既存の業務は削除されません）`)) {
         return;
     }
     
@@ -2632,17 +2847,27 @@ async function loadTemplate(templateName) {
         const snapshot = await database.ref(`${DATA_ROOT}/templates/${templateName}`).once('value');
         if (snapshot.exists()) {
             const template = snapshot.val();
-            globalTasksData = template.tasks || globalTasksData;
-            globalAssignmentsData = template.assignments || globalAssignmentsData;
-            CE_LIST = template.ceList || CE_LIST;
             
+            // テンプレートの業務と割り当てを現在のスケジュールにマージ（追加）
+            mergeTemplateIntoCurrent(template.tasks, template.assignments);
+            
+            // CEリストはテンプレートで上書き
+            CE_LIST = template.ceList || CE_LIST;
+
             updateAllDisplays();
-            saveAllToFirebase();
+            
+            // イベントリスナーを再設定（重要：テンプレート読込後の不具合解決）
+            setTimeout(() => {
+                setupAllEventListeners();
+                console.log('✅ イベントリスナーを再設定しました');
+            }, 100);
+            
+            await saveAllToFirebase();
             showMessage('テンプレートを読み込みました', 'success');
             recordEditHistory('テンプレート読込', templateName);
             
-            // モーダルを閉じる
-            const modal = document.querySelector('.modal');
+            // テンプレートモーダルのみ閉じる
+            const modal = document.getElementById('templateModal');
             if (modal) modal.remove();
         } else {
             showMessage('テンプレートが見つかりません', 'error');
@@ -2651,6 +2876,31 @@ async function loadTemplate(templateName) {
         console.error('テンプレート読込エラー:', error);
         showMessage('テンプレート読込に失敗しました', 'error');
     }
+}
+
+// テンプレートの業務と割り当てを現在のスケジュールにマージする関数
+function mergeTemplateIntoCurrent(templateTasks, templateAssignments) {
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    
+    days.forEach(day => {
+        const currentTasks = globalTasksData[day] || [];
+        const currentAssignments = globalAssignmentsData[day] || {};
+        const tempTasks = templateTasks[day] || [];
+        
+        tempTasks.forEach((templateTask, oldIndex) => {
+            // 新しい業務を追加
+            currentTasks.push(templateTask);
+            const newIndex = currentTasks.length - 1;
+            
+            // 割り当てをコピー
+            if (templateAssignments[day] && templateAssignments[day][oldIndex]) {
+                currentAssignments[newIndex] = [...templateAssignments[day][oldIndex]];
+            }
+        });
+        
+        globalTasksData[day] = currentTasks;
+        globalAssignmentsData[day] = currentAssignments;
+    });
 }
 
 async function deleteTemplate(templateName) {
@@ -2748,13 +2998,150 @@ function saveCEFromModal() {
     showMessage('CEを更新しました', 'success');
 }
 
-// ========== 管理者機能 ==========
+// ========== 管理者機能（CEリスト管理） ==========
 function openCEManagement() {
     if (userRole !== 'admin') {
         showMessage('管理者権限が必要です', 'warning');
         return;
     }
-    showMessage('CEリスト管理機能は次回アップデートで実装予定です', 'info');
+    
+    renderCEManagementList();
+    showModal('ceManageModal');
+}
+
+function renderCEManagementList() {
+    const listContainer = document.getElementById('ceManageList');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    CE_LIST.forEach((ce, index) => {
+        const listItem = document.createElement('li');
+        listItem.className = 'flex items-center justify-between p-2 bg-gray-50 rounded-lg shadow-sm mb-2';
+        listItem.draggable = true;
+        listItem.dataset.ceIndex = index;
+
+        listItem.innerHTML = `
+            <div class="flex items-center flex-grow">
+                <i class="fas fa-grip-vertical text-gray-400 mr-2 cursor-grab"></i>
+                <span class="font-medium">${ce.name}</span>
+                <span class="ml-2 text-xs px-2 py-0.5 rounded ${`worktype-${ce.workType.toLowerCase()}`}"
+                      style="background: rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.08);">
+                    ${ce.workType}
+                </span>
+            </div>
+            <button class="bg-red-500 text-white px-3 py-1 rounded-full text-xs hover:bg-red-600" 
+                    onclick="deleteCEFromManagement(${index})">
+                <i class="fas fa-trash"></i>
+            </button>
+        `;
+        listContainer.appendChild(listItem);
+    });
+
+    // ドラッグ&ドロップイベントリスナー
+    let dragSrcEl = null;
+
+    listContainer.addEventListener('dragstart', function(e) {
+        dragSrcEl = e.target.closest('li');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', dragSrcEl.dataset.ceIndex);
+        dragSrcEl.classList.add('opacity-50');
+    });
+
+    listContainer.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const target = e.target.closest('li');
+        if (target && target !== dragSrcEl) {
+            const rect = target.getBoundingClientRect();
+            const midpoint = rect.y + rect.height / 2;
+            if (e.clientY < midpoint) {
+                target.parentNode.insertBefore(dragSrcEl, target);
+            } else {
+                target.parentNode.insertBefore(dragSrcEl, target.nextSibling);
+            }
+        }
+    });
+
+    listContainer.addEventListener('drop', function(e) {
+        e.preventDefault();
+        dragSrcEl.classList.remove('opacity-50');
+    });
+
+    listContainer.addEventListener('dragend', function(e) {
+        dragSrcEl.classList.remove('opacity-50');
+        dragSrcEl = null;
+    });
+}
+
+function addNewCE() {
+    const newCENameInput = document.getElementById('newCEName');
+    const newCEWorkTypeSelect = document.getElementById('newCEWorkType');
+    
+    const name = newCENameInput.value.trim();
+    const workType = newCEWorkTypeSelect.value;
+
+    if (!name) {
+        showMessage('CE名を入力してください', 'warning');
+        return;
+    }
+
+    // 重複チェック
+    if (CE_LIST.some(ce => ce.name === name)) {
+        showMessage('同じ名前のCEが既に存在します', 'warning');
+        return;
+    }
+
+    CE_LIST.push({ 
+        name: name, 
+        workType: workType, 
+        status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } 
+    });
+    newCENameInput.value = '';
+    renderCEManagementList();
+    showMessage(`${name}を追加しました`, 'success');
+}
+
+function deleteCEFromManagement(index) {
+    if (userRole !== 'admin') {
+        showMessage('管理者権限が必要です', 'warning');
+        return;
+    }
+    
+    if (!confirm(`${CE_LIST[index].name}を削除しますか？`)) {
+        return;
+    }
+    
+    const deletedCEName = CE_LIST[index].name;
+    CE_LIST.splice(index, 1);
+    
+    // 削除されたCEが割り当てられている業務から削除
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    days.forEach(day => {
+        const assignments = globalAssignmentsData[day] || {};
+        for (const taskIndex in assignments) {
+            assignments[taskIndex] = assignments[taskIndex].filter(ceName => ceName !== deletedCEName);
+        }
+    });
+
+    renderCEManagementList();
+    showMessage(`${deletedCEName}を削除しました`, 'success');
+}
+
+function saveCEManagement() {
+    // DOMの現在の並び順に基づいてCE_LISTを更新
+    const listContainer = document.getElementById('ceManageList');
+    const newCE_LIST_Order = [];
+    Array.from(listContainer.children).forEach(li => {
+        const originalIndex = parseInt(li.dataset.ceIndex, 10);
+        newCE_LIST_Order.push(CE_LIST[originalIndex]);
+    });
+    CE_LIST = newCE_LIST_Order;
+    
+    updateAllDisplays();
+    saveAllToFirebase();
+    closeModal('ceManageModal');
+    recordEditHistory('CEリスト管理', 'CEリストを更新しました');
+    showMessage('CEリストを保存しました', 'success');
 }
 
 function copyFullHtml() {
@@ -2848,18 +3235,12 @@ async function loadLoginStats() {
     }
 }
 
-// ========== その他の基本機能 ==========
-function addNewCE() {
-    showMessage('CE追加機能は次回アップデートで実装予定です', 'info');
-}
-
-function saveCEManagement() {
-    showMessage('CE管理保存機能は次回アップデートで実装予定です', 'info');
-}
-
 // グローバル関数の登録
 window.loadTemplate = loadTemplate;
 window.deleteTemplate = deleteTemplate;
+window.addNewCE = addNewCE;
+window.deleteCEFromManagement = deleteCEFromManagement;
+window.saveCEManagement = saveCEManagement;
 // ========= COMPLETE FUNCTIONS END =========
     </script>
     <!-- ========= JAVASCRIPT END ========= -->
