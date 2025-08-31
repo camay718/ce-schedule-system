@@ -2010,58 +2010,7 @@
         window.printCanvas = printCanvas;
         // ========= GLOBAL FUNCTIONS END =========
 
-      // ========= TIMELINE FUNCTIONS START (行数: 1952-2000) =========
-function generateTimeline() {
-    const container = document.getElementById('timelineContainer');
-    if (!container) return;
-
-    container.innerHTML = '';
-    
-    // CEごとの週間データを生成
-    const timelineData = {};
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
-    const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜'];
-    
-    // 各CEの週間スケジュールを構築
-    CE_LIST.forEach(ce => {
-        timelineData[ce.name] = { ce: ce, schedule: {} };
-        days.forEach(day => {
-            timelineData[ce.name].schedule[day] = [];
-        });
-    });
-    
-    // タスク割り当てデータを収集
-    days.forEach(day => {
-        const tasks = globalTasksData[day] || [];
-        const assignments = globalAssign**個人別タイムライン機能・分析機能の実装方針と具体的手順**
-
----
-
-**1. 機能概要・導入方針**
-
-CEスケジュール管理システムにおける「個人別タイムライン機能」は、各CEスタッフが1週間のうちどの業務にどの時間帯で割り当てられているかを、視覚的・直感的に把握できるようにするものです。  
-現場実務での使いやすさ（視覚化）と、管理・分析での利便性（サマリやグラフ）を両立するため、  
-- **タイムラインはガントチャート風バー付きカード表示（gpt-5方式）**
-- **分析・集計機能はサマリ表・Chart.jsグラフ（claude-sonnet-4方式）**
-を順次追加していくのがベストプラクティスです。
-
----
-
-**2. 実装手順**
-
-**2-1. タイムライン機能（gpt-5方式）の追加**
-
-1. **置換範囲の確認**  
-   既存の`index.html`内、  
-   `// ========= PLACEHOLDER FUNCTIONS START (行数: 1952-2000) =========`  
-   から  
-   `// ========= PLACEHOLDER FUNCTIONS END =========`  
-   までを**すべて下記コードで置換**します。
-
-2. **置換コード例（抜粋・解説付き）**
-
-```javascript
-// ========= PLACEHOLDER FUNCTIONS START (行数: 1952-2000) =========
+    // ========= PLACEHOLDER FUNCTIONS START (行数: 1952-2000) =========
 // タイムライン生成（実装）
 function generateTimeline() {
     const container = document.getElementById('timelineContainer');
