@@ -1390,12 +1390,13 @@ function setupAllEventListeners() {
 
     // ログイン関連（最優先・確実な設定）
     const userId = document.getElementById('userId');
-    const loginButton = document.getElementById('loginButton');
+    const loginButtons = document.querySelectorAll('[id="loginButton"]');
     const securityInput = document.getElementById('securityInput');
     const nameInput = document.getElementById('nameInput');
     
-    // 既存のイベントリスナーを削除してから再設定（重要）
+    // userIdのイベントリスナー設定
     if (userId) {
+        // 既存のリスナーを削除してから再設定
         userId.removeEventListener('change', handleUserIdChange);
         userId.removeEventListener('input', handleUserIdChange);
         userId.addEventListener('change', handleUserIdChange);
@@ -1403,14 +1404,31 @@ function setupAllEventListeners() {
         console.log('✅ userId イベントリスナー設定完了');
     }
     
-    if (loginButton) {
-        loginButton.removeEventListener('click', handleLogin);
-        loginButton.addEventListener('click', handleLogin);
-        console.log('✅ loginButton イベントリスナー設定完了');
-    }
+    // ログインボタンの設定（重複ID対策）
+    loginButtons.forEach((btn, index) => {
+        if (btn) {
+            btn.removeEventListener('click', window.handleLogin);
+            btn.addEventListener('click', window.handleLogin);
+            console.log(`✅ loginButton[${index}] イベントリスナー設定完了`);
+        }
+    });
 
-    setEventListenerSafely(securityInput, 'keypress', e => { if (e.key === 'Enter') handleLogin(); }, 'keypressListener');
-    setEventListenerSafely(nameInput, 'keypress', e => { if (e.key === 'Enter') handleLogin(); }, 'keypressListener');
+    // Enterキーでのログイン
+    const handleEnterLogin = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            window.handleLogin();
+        }
+    };
+
+    if (securityInput) {
+        securityInput.removeEventListener('keypress', handleEnterLogin);
+        securityInput.addEventListener('keypress', handleEnterLogin);
+    }
+    if (nameInput) {
+        nameInput.removeEventListener('keypress', handleEnterLogin);
+        nameInput.addEventListener('keypress', handleEnterLogin);
+    }
 
     // サイドバー・ナビゲーション
     const toggleSidebar = document.getElementById('toggleSidebar');
@@ -1514,67 +1532,100 @@ function setupAllEventListeners() {
             }
         }
 
-        function handleLogin() {
-            console.log('🔄 ログイン処理開始');
-            
-            const userId = document.getElementById('userId').value;
-            const nameInput = document.getElementById('nameInput').value.trim();
-            const securityInput = document.getElementById('securityInput').value;
+    // ログイン関数をグローバルスコープに確実に定義
+window.handleLogin = function() {
+    console.log('🔄 ログイン処理開始');
+    
+    try {
+        const userIdElement = document.getElementById('userId');
+        const nameInputElement = document.getElementById('nameInput');
+        const securityInputElement = document.getElementById('securityInput');
 
-            if (!userId) {
-                showMessage('ユーザーを選択してください', 'warning');
+        if (!userIdElement || !nameInputElement || !securityInputElement) {
+            console.error('❌ ログインに必要な要素が見つかりません');
+            showMessage('ログインに必要な要素が見つかりません', 'error');
+            return;
+        }
+
+        const userId = userIdElement.value;
+        const nameInput = nameInputElement.value.trim();
+        const securityInput = securityInputElement.value;
+
+        console.log('ユーザーID:', userId);
+        console.log('名前入力:', nameInput ? '入力あり' : '入力なし');
+        console.log('セキュリティ入力:', securityInput ? '入力あり' : '入力なし');
+
+        if (!userId) {
+            showMessage('ユーザーを選択してください', 'warning');
+            return;
+        }
+
+        const credential = AUTH_CREDENTIALS[userId];
+        if (!credential) {
+            showMessage('無効なユーザーです', 'error');
+            return;
+        }
+
+        let isValid = false;
+        let displayName = userId;
+        
+        if (credential.type === 'name') {
+            if (!nameInput) {
+                showMessage('お名前を入力してください', 'warning');
                 return;
             }
-
-            const credential = AUTH_CREDENTIALS[userId];
-            if (!credential) {
-                showMessage('無効なユーザーです', 'error');
+            isValid = true;
+            displayName = nameInput;
+            console.log('✅ 名前認証成功:', nameInput);
+        } else {
+            if (!securityInput) {
+                showMessage('セキュリティコードを入力してください', 'warning');
                 return;
             }
-
-            let isValid = false;
-            let displayName = userId;
-            
-            if (credential.type === 'name') {
-                if (!nameInput) {
-                    showMessage('お名前を入力してください', 'warning');
-                    return;
-                }
-                isValid = true;
-                displayName = nameInput;
-            } else {
-                if (!securityInput) {
-                    showMessage('セキュリティコードを入力してください', 'warning');
-                    return;
-                }
-                isValid = securityInput === credential.code;
-            }
-
+            isValid = securityInput === credential.code;
             if (isValid) {
-                userRole = credential.role;
-                currentUser = displayName;
-                userDepartment = credential.department; // 部門情報を保存
-                
-                // ログイン状態保存（24時間有効）
-                const loginExpiry = Date.now() + (24 * 60 * 60 * 1000);
-                localStorage.setItem('ceSystemLoggedInUser', JSON.stringify({
-                    id: currentUser,
-                    role: userRole,
-                    department: userDepartment,
-                    loginTime: new Date().toISOString()
-                }));
-                localStorage.setItem('ceSystemLoginExpiry', loginExpiry.toString());
-                
-                showMainInterface();
-                recordEditHistory('ログイン', `${userId}として入室`);
-                recordLoginEvent('login');
-                showMessage(`${userId}としてログインしました`, 'success');
-                
-                if (isFirebaseReady) loadAllFromFirebase();
+                displayName = userId;
+                console.log('✅ セキュリティコード認証成功:', userId);
             } else {
-                showMessage('認証に失敗しました', 'error');
+                console.log('❌ セキュリティコード認証失敗');
             }
         }
+
+        if (isValid) {
+            userRole = credential.role;
+            currentUser = displayName;
+            userDepartment = credential.department;
+            
+            // ログイン状態保存（24時間有効）
+            const loginExpiry = Date.now() + (24 * 60 * 60 * 1000);
+            localStorage.setItem('ceSystemLoggedInUser', JSON.stringify({
+                id: currentUser,
+                role: userRole,
+                department: userDepartment,
+                loginTime: new Date().toISOString()
+            }));
+            localStorage.setItem('ceSystemLoginExpiry', loginExpiry.toString());
+            
+            console.log('✅ ログイン成功 - メイン画面表示');
+            showMainInterface();
+            recordEditHistory('ログイン', `${userId}として入室`);
+            recordLoginEvent('login');
+            showMessage(`${userId}としてログインしました`, 'success');
+            
+            if (isFirebaseReady) loadAllFromFirebase();
+        } else {
+            showMessage('認証に失敗しました', 'error');
+        }
+    } catch (error) {
+        console.error('❌ ログイン処理エラー:', error);
+        showMessage('ログイン処理でエラーが発生しました: ' + error.message, 'error');
+    }
+};
+
+// 従来の関数名でも呼び出し可能にする
+function handleLogin() {
+    return window.handleLogin();
+}
 
         function handleLogout() {
             if (confirm('ログアウトしてもよろしいですか？')) {
@@ -2440,8 +2491,13 @@ function updateAllDisplays() {
             }
         }
 
-        function showMessage(text, type = 'info') {
-            const container = document.getElementById('messageContainer');
+ // showMessage関数の確実な実装（フォールバック機能付き）
+if (typeof showMessage !== 'function') {
+    window.showMessage = function(text, type = 'info') {
+        console.log(`📢 ${type.toUpperCase()}: ${text}`);
+        
+        try {
+            const container = document.getElementById('messageContainer') || document.body;
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${type}`;
             
@@ -2457,6 +2513,25 @@ function updateAllDisplays() {
                 ${text}
             `;
             
+            // CSSスタイルを直接適用
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 16px;
+                right: 16px;
+                z-index: 2000;
+                padding: 10px 14px;
+                border-radius: 20px;
+                font-weight: 600;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                animation: slideInRight 0.3s ease;
+                ${type === 'success' ? 'background: rgba(76,175,80,0.95); color: #fff;' : ''}
+                ${type === 'error' ? 'background: rgba(244,67,54,0.95); color: #fff;' : ''}
+                ${type === 'warning' ? 'background: rgba(255,193,7,0.95); color: #111;' : ''}
+                ${type === 'info' ? 'background: rgba(33,150,243,0.95); color: #fff;' : ''}
+            `;
+            
             container.appendChild(messageDiv);
             
             setTimeout(() => {
@@ -2464,7 +2539,15 @@ function updateAllDisplays() {
                     messageDiv.remove();
                 }
             }, 4000);
+        } catch (error) {
+            // 最終フォールバック：アラート表示
+            alert(`${type.toUpperCase()}: ${text}`);
         }
+    };
+    
+    // グローバル関数として登録
+    window.showMessage = window.showMessage;
+}
 
         function printElement(elementId) {
             const element = document.getElementById(elementId);
@@ -2530,9 +2613,9 @@ function updateAllDisplays() {
         // ========= HELPER FUNCTIONS END =========
 
 // ========= GLOBAL FUNCTIONS START =========
-// 重要な関数をグローバルスコープに登録（ログイン関連を追加）
+// 重要な関数をグローバルスコープに登録（ログイン関連を強化）
 window.handleUserIdChange = handleUserIdChange;
-window.handleLogin = handleLogin; // ← 重要：追加
+window.handleLogin = window.handleLogin; // 既に定義済みを再登録
 window.openTaskModal = openTaskModal;
 window.closeModal = closeModal;
 window.showModal = showModal;
@@ -2546,22 +2629,20 @@ window.deleteCEFromManagement = deleteCEFromManagement;
 window.saveCEManagement = saveCEManagement;
 window.clearAllTasks = clearAllTasks;
 
-// デバッグ用関数の登録
-window.debugSystemState = function() {
-    console.log('Current User:', currentUser);
-    console.log('User Role:', userRole);
-    console.log('User Department:', userDepartment);
-    console.log('Firebase Ready:', isFirebaseReady);
-    console.log('Tasks Data:', globalTasksData);
-    console.log('Assignments Data:', globalAssignmentsData);
-};
-
-// ログイン機能デバッグ用
+// デバッグ用関数
 window.debugLogin = function() {
-    console.log('Login Button:', document.getElementById('loginButton'));
-    console.log('User ID:', document.getElementById('userId'));
-    console.log('handleLogin function:', typeof handleLogin);
-    console.log('window.handleLogin:', typeof window.handleLogin);
+    console.log('=== ログイン機能デバッグ ===');
+    console.log('loginButton:', document.getElementById('loginButton'));
+    console.log('userId:', document.getElementById('userId'));
+    console.log('handleLogin function:', typeof window.handleLogin);
+    console.log('showMessage function:', typeof window.showMessage);
+    
+    // 要素の存在確認
+    const elements = ['userId', 'nameInput', 'securityInput', 'loginButton'];
+    elements.forEach(id => {
+        const element = document.getElementById(id);
+        console.log(`${id}:`, element ? '存在' : '見つからない');
+    });
 };
 // ========= GLOBAL FUNCTIONS END =========
 
