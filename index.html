@@ -12,7 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     
     <!-- ========= CSS STYLES START (行数: 15-200) ========= -->
-   <style>
+  <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #E8F5E8 0%, #D4F1D4 100%);
             --accent-color: #B8E6B8;
@@ -175,7 +175,8 @@
             min-height: 100vh;
             transition: all 0.3s ease;
             width: 60px;
-            overflow: hidden;
+            overflow-x: hidden;
+            overflow-y: auto;
             flex-shrink: 0;
         }
 
@@ -355,7 +356,7 @@
         @media (max-width: 768px) {
             body { font-size: 13px; }
             .sidebar { width: 60px; }
-            .sidebar.expanded { width: min(250px, 80vw); }
+            .sidebar.expanded { width: min(220px, 75vw); }
             .sidebar-text { opacity: 0; }
             .sidebar.expanded .sidebar-text { opacity: 1; }
             
@@ -376,8 +377,18 @@
             .task-item { font-size: 13px; padding: 8px; }
             .assigned-ce { font-size: 10px; padding: 1px 4px; }
             
-            #timelineContainer {
+            #timelineContainer, #departmentTimelineContainer {
                 grid-template-columns: 1fr;
+            }
+            
+            /* スマホ版配置状況の調整 */
+            #summaryContent .grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 4px;
+            }
+            #summaryContent .p-2 {
+                padding: 6px;
+                font-size: 11px;
             }
         }
     </style>
@@ -459,9 +470,12 @@
                 </div>
             </div>
 
-            <nav class="space-y-2 mb-6">
+                  <nav class="space-y-2 mb-6">
                 <button id="scheduleTab" class="nav-tab w-full text-left p-3 rounded-lg hover:bg-green-100 font-medium active">
                     <i class="fas fa-calendar mr-2"></i><span class="sidebar-text">週間スケジュール</span>
+                </button>
+                <button id="departmentTimelineTab" class="nav-tab w-full text-left p-3 rounded-lg hover:bg-green-100 font-medium">
+                    <i class="fas fa-chart-gantt mr-2"></i><span class="sidebar-text">業務別タイムライン</span>
                 </button>
                 <button id="timelineTab" class="nav-tab w-full text-left p-3 rounded-lg hover:bg-green-100 font-medium">
                     <i class="fas fa-chart-line mr-2"></i><span class="sidebar-text">個人別タイムライン</span>
@@ -563,7 +577,16 @@
                     <div id="ceListContainer" class="ce-grid"></div>
                 </div>
             </div>
-
+          <!-- 業務別タイムライン -->
+            <div id="departmentTimelineContent" class="screen-content" style="display:none;">
+                <div class="mb-4 flex justify-between items-center">
+                    <h2 class="text-2xl font-bold">業務別タイムライン</h2>
+                    <button class="btn-primary text-sm" onclick="window.print()">
+                        <i class="fas fa-print mr-1"></i>印刷
+                    </button>
+                </div>
+                <div id="departmentTimelineContainer" class="space-y-6"></div>
+            </div>
             <!-- 個人別タイムライン -->
             <div id="timelineContent" class="screen-content" style="display:none;">
                 <div class="mb-4 flex justify-between items-center">
@@ -1147,10 +1170,9 @@ function closeModal(modalId) {
         // ========= FIREBASE FUNCTIONS END =========
 
         // ========= EVENT LISTENERS START (行数: 1052-1120) =========
-       function setupAllEventListeners() {
+function setupAllEventListeners() {
     console.log('🔄 イベントリスナー設定開始');
     
-    // 重複設定防止のため、既存リスナーをチェック
     const setEventListenerSafely = (element, event, handler, identifier) => {
         if (element && !element.dataset[identifier]) {
             element.addEventListener(event, handler);
@@ -1177,9 +1199,10 @@ function closeModal(modalId) {
         if (sidebar) sidebar.classList.toggle('expanded');
     }, 'toggleListener');
 
-    // ナビゲーションタブ
+    // ナビゲーションタブ（業務別タイムライン追加）
     const navTabs = [
         { id: 'scheduleTab', content: 'scheduleContent' },
+        { id: 'departmentTimelineTab', content: 'departmentTimelineContent' },
         { id: 'timelineTab', content: 'timelineContent' },
         { id: 'analysisTab', content: 'analysisContent' },
         { id: 'settingsTab', content: 'settingsContent' }
@@ -1493,20 +1516,21 @@ function closeModal(modalId) {
         // ========= DATE AND WEEK FUNCTIONS END =========
 
         // ========= SCREEN NAVIGATION START (行数: 1282-1310) =========
-        function showScreen(contentId, tabId) {
-            document.querySelectorAll('.screen-content').forEach(screen => screen.style.display = 'none');
-            document.getElementById(contentId).style.display = 'block';
-            
-            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            
-            if (contentId === 'timelineContent') generateTimeline();
-            if (contentId === 'analysisContent') generateAnalysis();
-            if (contentId === 'settingsContent') { 
-                loadChangeHistory(); 
-                if (userRole === 'admin') loadLoginStats(); 
-            }
-        }
+function showScreen(contentId, tabId) {
+    document.querySelectorAll('.screen-content').forEach(screen => screen.style.display = 'none');
+    document.getElementById(contentId).style.display = 'block';
+    
+    document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    
+    if (contentId === 'timelineContent') generateTimeline();
+    if (contentId === 'departmentTimelineContent') generateDepartmentTimeline();
+    if (contentId === 'analysisContent') generateAnalysis();
+    if (contentId === 'settingsContent') { 
+        loadChangeHistory(); 
+        if (userRole === 'admin') loadLoginStats(); 
+    }
+}
         // ========= SCREEN NAVIGATION END =========
 
         // ========= CE LIST FUNCTIONS START (行数: 1312-1370) =========
@@ -2810,7 +2834,123 @@ function generateTimeSlotCharts() {
             }
         });
     }
+// ========== 業務別タイムライン機能 ==========
+function generateDepartmentTimeline() {
+    const container = document.getElementById('departmentTimelineContainer');
+    if (!container) return;
+    container.innerHTML = '';
 
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜'];
+    const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
+
+    // 表示時間範囲（07:00-19:00）
+    const timelineStart = timeToMinutes('07:00');
+    const timelineEnd = timeToMinutes('19:00');
+    const totalMinutes = timelineEnd - timelineStart;
+
+    departments.forEach(dept => {
+        const deptCard = document.createElement('div');
+        deptCard.className = 'glassmorphism rounded-2xl p-4';
+        deptCard.style.borderLeft = `4px solid ${getDepartmentColor(dept)}`;
+
+        deptCard.innerHTML = `
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-${getDepartmentIcon(dept)} mr-2 text-xl" style="color: ${getDepartmentColor(dept)};"></i>
+                    <h3 class="font-bold text-lg">${dept}</h3>
+                </div>
+                <div class="text-xs text-gray-500">表示範囲: 07:00 - 19:00</div>
+            </div>
+        `;
+
+        const body = document.createElement('div');
+        body.className = 'space-y-3';
+
+        days.forEach((day, dayIdx) => {
+            const tasksOnDay = (globalTasksData[day] || []).filter(task => task.department === dept);
+            const assignmentsOnDay = globalAssignmentsData[day] || {};
+
+            const dayRow = document.createElement('div');
+            dayRow.className = 'p-3 rounded-lg';
+            dayRow.style.background = 'rgba(255,255,255,0.8)';
+            dayRow.style.border = '1px solid rgba(0,0,0,0.06)';
+
+            const dayHeader = document.createElement('div');
+            dayHeader.className = 'flex justify-between items-center mb-2';
+            dayHeader.innerHTML = `
+                <div class="text-sm font-bold">${dayLabels[dayIdx]} ${formatDayDate(dayIdx)}</div>
+                <div class="text-xs text-gray-500">${tasksOnDay.length}件の業務</div>
+            `;
+            dayRow.appendChild(dayHeader);
+
+            // 時間軸ラベル
+            const timeScale = document.createElement('div');
+            timeScale.className = 'flex justify-between text-xs text-gray-500 mb-1 px-1';
+            for (let h = 7; h < 19; h += 2) {
+                const hourDiv = document.createElement('div');
+                hourDiv.textContent = `${h}:00`;
+                hourDiv.style.flex = '1';
+                hourDiv.style.textAlign = 'center';
+                timeScale.appendChild(hourDiv);
+            }
+            dayRow.appendChild(timeScale);
+
+            // タイムライントラック
+            const track = document.createElement('div');
+            track.className = 'relative w-full bg-gray-200 rounded overflow-hidden';
+            track.style.height = Math.max(24, tasksOnDay.length * 22 + 8) + 'px';
+            track.style.border = '1px solid #ccc';
+
+            tasksOnDay.forEach((task, taskIdx) => {
+                const s = Math.max(timeToMinutes(task.startTime), timelineStart);
+                const e = Math.min(timeToMinutes(task.endTime), timelineEnd);
+                if (e <= timelineStart || s >= timelineEnd) return;
+
+                const left = ((s - timelineStart) / totalMinutes) * 100;
+                const width = Math.max(3, ((e - s) / totalMinutes) * 100);
+
+                // 元のタスクインデックスを取得
+                const originalTaskIndex = globalTasksData[day].findIndex(t => 
+                    t.name === task.name && t.department === task.department && 
+                    t.startTime === task.startTime && t.endTime === task.endTime
+                );
+                const assignedCEs = assignmentsOnDay[originalTaskIndex] || [];
+
+                const taskBar = document.createElement('div');
+                taskBar.className = 'absolute flex items-center justify-center text-center text-white text-xs font-bold';
+                taskBar.style.left = left + '%';
+                taskBar.style.width = width + '%';
+                taskBar.style.top = (taskIdx * 22 + 2) + 'px';
+                taskBar.style.height = '18px';
+                taskBar.style.backgroundColor = getDepartmentColor(dept);
+                taskBar.style.opacity = '0.9';
+                taskBar.style.borderRadius = '3px';
+                taskBar.style.overflow = 'hidden';
+                taskBar.style.whiteSpace = 'nowrap';
+                taskBar.style.textOverflow = 'ellipsis';
+                taskBar.style.padding = '0 4px';
+
+                const ceNames = assignedCEs.join(', ');
+                taskBar.title = `${task.name} (${task.startTime}-${task.endTime})\nCE: ${ceNames || '未配置'}`;
+                
+                if (width > 15) {
+                    taskBar.innerHTML = `${task.name} | ${ceNames || '未配置'}`;
+                } else {
+                    taskBar.innerHTML = task.name.substring(0, 3) + '...';
+                }
+
+                track.appendChild(taskBar);
+            });
+
+            dayRow.appendChild(track);
+            body.appendChild(dayRow);
+        });
+
+        deptCard.appendChild(body);
+        container.appendChild(deptCard);
+    });
+}
     // 時間帯別配置人数（曜日別）
     const ctxDay = document.getElementById('timeSlotChartDay');
     if (ctxDay) {
@@ -2901,7 +3041,7 @@ function calculateTimeSlotData(timeSlots, groups, type) {
     return result;
 }
 
-// ========== テンプレート機能（部門別権限制御対応） ==========
+// ========== テンプレート機能（重複除外対応） ==========
 async function saveTemplate() {
     if (userRole === 'viewer') {
         showMessage('テンプレート保存権限がありません', 'warning');
@@ -2914,7 +3054,6 @@ async function saveTemplate() {
         return;
     }
 
-    // 部門別制限の確認（管理者以外）
     if (userRole === 'editor' && userDepartment) {
         const hasOtherDeptTasks = checkOtherDepartmentTasks();
         if (hasOtherDeptTasks) {
@@ -2965,6 +3104,10 @@ async function showTemplateList() {
         const templates = snapshot.val();
         const templateList = Object.keys(templates);
         
+        // 既存のテンプレートモーダルを削除
+        const existingModal = document.getElementById('templateModal');
+        if (existingModal) existingModal.remove();
+        
         let listHTML = '<div class="space-y-2">';
         templateList.forEach(name => {
             const template = templates[name];
@@ -3001,8 +3144,8 @@ async function showTemplateList() {
             <div class="modal-content">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold">テンプレート一覧</h2>
-                    <button onclick="closeModal('templateModal')" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-times text-xl"></i>
+                    <button onclick="closeModal('templateModal')" class="text-gray-500 hover:text-gray-700 text-2xl leading-none">
+                        ×
                     </button>
                 </div>
                 ${listHTML}
@@ -3021,18 +3164,15 @@ async function loadTemplate(templateName) {
         return;
     }
     
-    // 他部門業務への影響確認（管理者以外）
     if (userRole === 'editor' && userDepartment) {
         const hasOtherDeptTasks = checkOtherDepartmentTasks();
         if (hasOtherDeptTasks) {
             const confirmMsg = `他部門の業務やCE配置が存在します。\nテンプレート「${templateName}」を読み込むと、これらも影響を受ける可能性があります。\n\n続行しますか？`;
-            if (!confirm(confirmMsg)) {
-                return;
-            }
+            if (!confirm(confirmMsg)) return;
         }
     }
     
-    if (!confirm(`テンプレート「${templateName}」を読み込みますか？\n現在のスケジュールに業務が追加されます。\n（既存の業務は削除されません）`)) {
+    if (!confirm(`テンプレート「${templateName}」を読み込みますか？\n重複しない業務のみが追加されます。\n（完全一致する業務は追加されません）`)) {
         return;
     }
     
@@ -3044,18 +3184,14 @@ async function loadTemplate(templateName) {
         }
         
         const template = snapshot.val();
-        
-        // テンプレートの業務と割り当てを現在のスケジュールにマージ（追加）
-        mergeTemplateIntoCurrent(template.tasks, template.assignments);
-        
-        // CEリストはテンプレートで上書き
+        const mergeResult = mergeTemplateIntoCurrent(template.tasks, template.assignments);
         CE_LIST = template.ceList || CE_LIST;
 
         updateAllDisplays();
         await saveAllToFirebase();
         
-        showMessage('テンプレートを読み込みました', 'success');
-        recordEditHistory('テンプレート読込', `${templateName} (${template.department})`);
+        showMessage(`テンプレートを読み込みました（${mergeResult.added}件追加、${mergeResult.skipped}件重複スキップ）`, 'success');
+        recordEditHistory('テンプレート読込', `${templateName} (追加:${mergeResult.added}件, スキップ:${mergeResult.skipped}件)`);
         
         closeModal('templateModal');
         
@@ -3065,9 +3201,10 @@ async function loadTemplate(templateName) {
     }
 }
 
-// テンプレートの業務と割り当てを現在のスケジュールにマージする関数
 function mergeTemplateIntoCurrent(templateTasks, templateAssignments) {
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    let addedCount = 0;
+    let skippedCount = 0;
     
     days.forEach(day => {
         const currentTasks = globalTasksData[day] || [];
@@ -3075,19 +3212,35 @@ function mergeTemplateIntoCurrent(templateTasks, templateAssignments) {
         const tempTasks = templateTasks[day] || [];
         
         tempTasks.forEach((templateTask, oldIndex) => {
-            // 新しい業務を追加
-            currentTasks.push(templateTask);
-            const newIndex = currentTasks.length - 1;
+            // 重複チェック（完全一致）
+            const isDuplicate = currentTasks.some(existingTask => 
+                existingTask.name === templateTask.name &&
+                existingTask.department === templateTask.department &&
+                existingTask.startTime === templateTask.startTime &&
+                existingTask.endTime === templateTask.endTime &&
+                existingTask.count === templateTask.count &&
+                existingTask.requiredPeople === templateTask.requiredPeople
+            );
             
-            // 割り当てをコピー
-            if (templateAssignments[day] && templateAssignments[day][oldIndex]) {
-                currentAssignments[newIndex] = [...templateAssignments[day][oldIndex]];
+            if (!isDuplicate) {
+                currentTasks.push(templateTask);
+                const newIndex = currentTasks.length - 1;
+                
+                if (templateAssignments[day] && templateAssignments[day][oldIndex]) {
+                    currentAssignments[newIndex] = [...templateAssignments[day][oldIndex]];
+                }
+                
+                addedCount++;
+            } else {
+                skippedCount++;
             }
         });
         
         globalTasksData[day] = currentTasks;
         globalAssignmentsData[day] = currentAssignments;
     });
+    
+    return { added: addedCount, skipped: skippedCount };
 }
 
 async function deleteTemplate(templateName) {
@@ -3096,9 +3249,7 @@ async function deleteTemplate(templateName) {
         return;
     }
     
-    if (!confirm(`テンプレート「${templateName}」を削除しますか？`)) {
-        return;
-    }
+    if (!confirm(`テンプレート「${templateName}」を削除しますか？`)) return;
     
     try {
         await database.ref(`${DATA_ROOT}/templates/${templateName}`).remove();
@@ -3136,9 +3287,9 @@ async function loadTemplateListUI() {
             const template = templates[name];
             const deptLabel = template.department === 'all' ? '全' : (template.department || '').substring(0, 2);
             return `
-                <div class="flex justify-between items-center p-1 bg-gray-100 rounded text-xs">
+                <div class="flex justify-between items-center p-1 bg-gray-100 rounded text-xs mb-1">
                     <span title="${template.department || '不明'}">${name} [${deptLabel}]</span>
-                    <button class="text-blue-600 hover:text-blue-800" onclick="loadTemplate('${name}')">読込</button>
+                    <button class="text-blue-600 hover:text-blue-800 px-1" onclick="loadTemplate('${name}')">読込</button>
                 </div>
             `;
         }).join('');
@@ -3451,6 +3602,107 @@ window.addNewCE = addNewCE;
 window.deleteCEFromManagement = deleteCEFromManagement;
 window.saveCEManagement = saveCEManagement;
 // ========= COMPLETE FUNCTIONS END =========
+/*
+========= バックアップ・復元機能 詳細仕様 =========
+
+【概要】
+CEスケジュール管理システムのデータ保護・復旧機能として、
+Firebase Realtime Databaseと連携した自動・手動バックアップシステム
+
+【実装機能一覧】
+
+1. 自動バックアップ機能
+   - 毎日午前2時に前日データの完全スナップショット作成
+   - 週次バックアップ（毎週日曜日）で7日分の差分保存
+   - 月次バックアップ（毎月末）で完全データアーカイブ
+   - バックアップデータは90日間保持（古いものは自動削除）
+
+2. 手動バックアップ機能
+   - 管理者による任意タイミングでのスナップショット作成
+   - バックアップ名の指定（例：「週次確定前_2024年12月」）
+   - 部分バックアップ（特定部門のみ、特定期間のみ）対応
+   - バックアップ一覧での管理・削除機能
+
+3. 復元機能
+   - 特定時点への完全復元（全データ置換）
+   - 部分復元（特定部門・期間のみ復元）
+   - 復元前の現在データ自動バックアップ
+   - 復元操作のログ記録・監査証跡
+
+4. データ整合性チェック
+   - バックアップ作成時のデータ検証
+   - 復元時の整合性確認
+   - 破損データの自動検出・報告
+   - CE配置データと業務データの関連性チェック
+
+【技術仕様】
+
+データ構造：
+{
+  backups: {
+    auto: {
+      daily: { "2024-12-01": { tasks, assignments, ceList, timestamp } },
+      weekly: { "2024-W48": { ... } },
+      monthly: { "2024-12": { ... } }
+    },
+    manual: {
+      "backup_name": { tasks, assignments, ceList, createdBy, timestamp, description }
+    }
+  }
+}
+
+API設計：
+- createBackup(type, name, description) → バックアップ作成
+- listBackups(filter) → バックアップ一覧取得
+- restoreFromBackup(backupId, options) → データ復元
+- deleteBackup(backupId) → バックアップ削除
+- validateBackup(backupId) → データ整合性チェック
+
+セキュリティ：
+- 復元操作は管理者権限必須
+- 操作ログの完全記録
+- バックアップデータの暗号化（Firebase Security Rules）
+- アクセス制御（部門別権限に応じた復元範囲制限）
+
+【運用フロー例】
+
+1. 平常時運用
+   - システムが自動的に毎日バックアップ実行
+   - 週次確定時に管理者が手動バックアップ作成
+   - バックアップ状況をダッシュボードで監視
+
+2. 障害発生時
+   - 障害検知・影響範囲特定
+   - 適切なバックアップポイントの選択
+   - 復元前バックアップの作成
+   - データ復元実行・動作確認
+
+3. 定期メンテナンス
+   - 古いバックアップの整理
+   - データ整合性の定期チェック
+   - バックアップ容量・性能の監視
+
+【実装時の考慮事項】
+
+- Firebase使用量制限との兼ね合い
+- バックアップデータの圧縮・最適化
+- 大容量データの分割転送
+- ユーザビリティ（復元操作の分かりやすさ）
+- 災害対策（外部ストレージとの連携）
+
+【実装優先度】
+Phase1: 手動バックアップ・復元機能
+Phase2: 自動バックアップ機能
+Phase3: データ整合性チェック・監視機能
+
+【実装工数見積】
+- 基本機能: 約40時間
+- UI/UX設計: 約20時間
+- テスト・検証: 約30時間
+- 合計: 約90時間（約2-3週間）
+
+========= バックアップ・復元機能仕様 END =========
+*/
     </script>
     <!-- ========= JAVASCRIPT END ========= -->
 </body>
