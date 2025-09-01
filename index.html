@@ -12,7 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     
     <!-- ========= CSS STYLES START (行数: 15-200) ========= -->
-  <style>
+ <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #E8F5E8 0%, #D4F1D4 100%);
             --accent-color: #B8E6B8;
@@ -181,7 +181,7 @@
         }
 
         .sidebar.expanded {
-            width: 256px;
+            width: 280px; /* ボタン表示問題解決のため幅を拡張 */
         }
 
         .sidebar-text {
@@ -381,14 +381,17 @@
                 grid-template-columns: 1fr;
             }
             
-            /* スマホ版配置状況の調整 */
-            #summaryContent .grid {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 4px;
+            /* スマホ版配置状況の横長調整 */
+            #summaryContent {
+                font-size: 12px;
             }
-            #summaryContent .p-2 {
-                padding: 6px;
-                font-size: 11px;
+            #summaryContent .grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+            #summaryContent .bg-white {
+                padding: 8px;
+                border-radius: 8px;
             }
         }
     </style>
@@ -525,28 +528,58 @@
         <div class="flex-1 p-4">
             <!-- 週間スケジュール -->
             <div id="scheduleContent" class="screen-content">
-                <div class="mb-4 flex justify-between items-center">
-                    <div class="flex items-center gap-2">
-                        <h2 class="text-2xl font-bold">週間スケジュール</h2>
-                        <button class="btn-primary text-sm" onclick="window.print()">
-                            <i class="fas fa-print mr-1"></i>印刷
-                        </button>
-                    </div>
-                    <div class="flex items-center space-x-3">
-                        <button id="addTaskButton" class="btn-primary">
-                            <i class="fas fa-plus mr-2"></i>業務追加
-                        </button>
-                        <div class="glassmorphism rounded-xl p-2">
-                            <div id="summaryContent" class="text-sm font-bold"></div>
-                        </div>
-                        <button id="clearTasksButton" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
-                            <i class="fas fa-trash mr-2"></i>業務クリア
-                        </button>
-                        <button id="logoutButton" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
-                            <i class="fas fa-sign-out-alt mr-2"></i>ログアウト
-                        </button>
-                    </div>
-                </div>
+<div class="mb-4">
+    <!-- モバイル対応ヘッダー -->
+    <div class="block md:hidden">
+        <h2 class="text-xl font-bold text-center mb-3">週間スケジュール</h2>
+        <div class="flex flex-wrap justify-center gap-2 mb-3">
+            <button id="addTaskButton" class="btn-primary text-sm flex items-center">
+                <i class="fas fa-plus"></i>
+                <span class="ml-1 hidden sm:inline">業務追加</span>
+            </button>
+            <button class="btn-primary text-sm flex items-center" onclick="window.print()">
+                <i class="fas fa-print"></i>
+                <span class="ml-1 hidden sm:inline">印刷</span>
+            </button>
+            <button id="clearTasksButton" class="bg-red-500 text-white px-3 py-2 rounded-lg hover:bg-red-600 text-sm flex items-center">
+                <i class="fas fa-trash"></i>
+                <span class="ml-1 hidden sm:inline">クリア</span>
+            </button>
+            <button id="logoutButton" class="bg-gray-500 text-white px-3 py-2 rounded-lg hover:bg-gray-600 text-sm flex items-center">
+                <i class="fas fa-sign-out-alt"></i>
+                <span class="ml-1 hidden sm:inline">ログアウト</span>
+            </button>
+        </div>
+        <!-- モバイル用配置状況（横長デザイン） -->
+        <div class="glassmorphism rounded-xl p-3 mb-3">
+            <div id="summaryContent" class="text-sm"></div>
+        </div>
+    </div>
+
+    <!-- デスクトップ対応ヘッダー -->
+    <div class="hidden md:flex justify-between items-center">
+        <div class="flex items-center gap-2">
+            <h2 class="text-2xl font-bold">週間スケジュール</h2>
+            <button class="btn-primary text-sm" onclick="window.print()">
+                <i class="fas fa-print mr-1"></i>印刷
+            </button>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button id="addTaskButton" class="btn-primary">
+                <i class="fas fa-plus mr-2"></i>業務追加
+            </button>
+            <div class="glassmorphism rounded-xl p-2">
+                <div id="summaryContent" class="text-sm font-bold"></div>
+            </div>
+            <button id="clearTasksButton" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">
+                <i class="fas fa-trash mr-2"></i>業務クリア
+            </button>
+            <button id="logoutButton" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600">
+                <i class="fas fa-sign-out-alt mr-2"></i>ログアウト
+            </button>
+        </div>
+    </div>
+</div>
 
                 <div class="mb-3">
                     <div class="flex space-x-1">
@@ -1706,7 +1739,7 @@ function showScreen(contentId, tabId) {
             updatePlacementSummary();
         }
 
-        function updatePlacementSummary() {
+function updatePlacementSummary() {
     const container = document.getElementById('summaryContent');
     if (!container) return;
 
@@ -1747,43 +1780,72 @@ function showScreen(contentId, tabId) {
     const absentTotal = absent休 + absent非 + absent出;
     const available = totalCE - absentTotal;
 
-    // 部門別サマリ生成
-    const deptCards = departments.map(dept => {
-        const deptTasks = tasks.filter(t => t.department === dept);
-        let req = 0, asg = 0, cnt = 0;
-        deptTasks.forEach(t => {
-            const idx = tasks.indexOf(t);
-            req += (t.requiredPeople || 0);
-            asg += ((assignments[idx] || []).length);
-            cnt += (t.count || 0);
-        });
-        const pct = req > 0 ? Math.round((asg / req) * 100) : 0;
-        const color = pct >= 100 ? 'text-green-700' : pct >= 80 ? 'text-yellow-700' : 'text-red-700';
-        
-        if (deptTasks.length === 0) return '';
-        
-        return `
-            <div class="p-2 rounded bg-white bg-opacity-80 text-xs">
-                <div class="font-bold mb-1">${dept}</div>
-                <div class="${color}">配置: ${asg}/${req} (${pct}%)</div>
-                <div class="text-gray-600">業務: ${deptTasks.length}件 / 件数: ${cnt}</div>
+    // モバイル・デスクトップ対応の表示分岐
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // モバイル用横長レイアウト
+        container.innerHTML = `
+            <div class="grid grid-cols-2 gap-3 text-center">
+                <div class="bg-white bg-opacity-80 rounded-lg p-2">
+                    <div class="${overallColor} font-bold text-lg">${totalAssigned}/${totalRequired}</div>
+                    <div class="text-xs text-gray-600">配置状況 (${overallPct}%)</div>
+                </div>
+                <div class="bg-white bg-opacity-80 rounded-lg p-2">
+                    <div class="font-bold text-lg text-blue-600">${totalTasks}件</div>
+                    <div class="text-xs text-gray-600">業務数 (件数:${totalCount})</div>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mt-2 text-center">
+                <div class="bg-white bg-opacity-80 rounded-lg p-2">
+                    <div class="font-bold text-lg text-green-600">${available}/${totalCE}</div>
+                    <div class="text-xs text-gray-600">配置可能CE数</div>
+                </div>
+                <div class="bg-white bg-opacity-80 rounded-lg p-2">
+                    <div class="font-bold text-lg text-red-600">${absentTotal}</div>
+                    <div class="text-xs text-gray-600">不在CE (休${absent休} 非${absent非} 出${absent出})</div>
+                </div>
             </div>
         `;
-    }).filter(card => card).join('');
+    } else {
+        // デスクトップ用従来レイアウト
+        const deptCards = departments.map(dept => {
+            const deptTasks = tasks.filter(t => t.department === dept);
+            let req = 0, asg = 0, cnt = 0;
+            deptTasks.forEach(t => {
+                const idx = tasks.indexOf(t);
+                req += (t.requiredPeople || 0);
+                asg += ((assignments[idx] || []).length);
+                cnt += (t.count || 0);
+            });
+            const pct = req > 0 ? Math.round((asg / req) * 100) : 0;
+            const color = pct >= 100 ? 'text-green-700' : pct >= 80 ? 'text-yellow-700' : 'text-red-700';
+            
+            if (deptTasks.length === 0) return '';
+            
+            return `
+                <div class="p-2 rounded bg-white bg-opacity-80 text-xs">
+                    <div class="font-bold mb-1">${dept}</div>
+                    <div class="${color}">配置: ${asg}/${req} (${pct}%)</div>
+                    <div class="text-gray-600">業務: ${deptTasks.length}件 / 件数: ${cnt}</div>
+                </div>
+            `;
+        }).filter(card => card).join('');
 
-    container.innerHTML = `
-        <div class="text-center mb-2">
-            <div class="${overallColor} font-bold">全体: ${totalAssigned}/${totalRequired}名 (${overallPct}%)</div>
-            <div class="text-xs text-gray-600">業務: ${totalTasks}件 / 件数合計: ${totalCount}</div>
-            <div class="text-xs text-gray-700 mt-1">
-                配置可能: <span class="font-bold text-green-600">${available}/${totalCE}名</span> | 
-                不在: <span class="font-bold text-red-600">${absentTotal}名</span>
-                <span class="text-gray-500">(休:${absent休} 非:${absent非} 出:${absent出})</span>
+        container.innerHTML = `
+            <div class="text-center mb-2">
+                <div class="${overallColor} font-bold">全体: ${totalAssigned}/${totalRequired}名 (${overallPct}%)</div>
+                <div class="text-xs text-gray-600">業務: ${totalTasks}件 / 件数合計: ${totalCount}</div>
+                <div class="text-xs text-gray-700 mt-1">
+                    配置可能: <span class="font-bold text-green-600">${available}/${totalCE}名</span> | 
+                    不在: <span class="font-bold text-red-600">${absentTotal}名</span>
+                    <span class="text-gray-500">(休:${absent休} 非:${absent非} 出:${absent出})</span>
+                </div>
             </div>
-        </div>
-        ${deptCards ? `<div class="grid grid-cols-2 md:grid-cols-3 gap-1 mt-2">${deptCards}</div>` : ''}
-    `;
-}
+            ${deptCards ? `<div class="grid grid-cols-2 md:grid-cols-3 gap-1 mt-2">${deptCards}</div>` : ''}
+        `;
+    }
+} 
         // ========= TASK DISPLAY FUNCTIONS END =========
 
         // ========= WEEKLY OVERVIEW START (行数: 1502-1580) =========
@@ -2120,16 +2182,19 @@ window.removeCEAssignment = removeCEAssignment;
             });
         }
 
-        function updateAllDisplays() {
+function updateAllDisplays() {
     console.log('🔄 全表示を更新中...');
     displayCEList();
     renderDaySections();
     updatePlacementSummary();
     if (currentActiveDay === 'overview') generateWeeklyOverview();
     if (document.getElementById('analysisContent').style.display === 'block') {
-        setTimeout(generateAnalysis, 50); // Chart.js描画のため少し遅延
+        setTimeout(generateAnalysis, 50);
     }
-    setupPermissions(); // 権限設定を再適用（テンプレート読込後の不具合解決）
+    if (document.getElementById('departmentTimelineContent').style.display === 'block') {
+        setTimeout(generateDepartmentTimeline, 50);
+    }
+    setupPermissions();
     console.log('✅ 全表示更新完了');
 }
 
@@ -2836,8 +2901,12 @@ function generateTimeSlotCharts() {
     }
 // ========== 業務別タイムライン機能 ==========
 function generateDepartmentTimeline() {
+    console.log('🔄 業務別タイムライン生成開始');
     const container = document.getElementById('departmentTimelineContainer');
-    if (!container) return;
+    if (!container) {
+        console.error('❌ departmentTimelineContainer が見つかりません');
+        return;
+    }
     container.innerHTML = '';
 
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
@@ -2850,6 +2919,18 @@ function generateDepartmentTimeline() {
     const totalMinutes = timelineEnd - timelineStart;
 
     departments.forEach(dept => {
+        console.log(`🔄 ${dept}のタイムライン生成中`);
+        
+        // 部門の業務データを収集
+        let hasTasks = false;
+        const deptData = {};
+        
+        days.forEach(day => {
+            const tasksOnDay = (globalTasksData[day] || []).filter(task => task.department === dept);
+            deptData[day] = tasksOnDay;
+            if (tasksOnDay.length > 0) hasTasks = true;
+        });
+
         const deptCard = document.createElement('div');
         deptCard.className = 'glassmorphism rounded-2xl p-4';
         deptCard.style.borderLeft = `4px solid ${getDepartmentColor(dept)}`;
@@ -2860,96 +2941,123 @@ function generateDepartmentTimeline() {
                     <i class="fas fa-${getDepartmentIcon(dept)} mr-2 text-xl" style="color: ${getDepartmentColor(dept)};"></i>
                     <h3 class="font-bold text-lg">${dept}</h3>
                 </div>
-                <div class="text-xs text-gray-500">表示範囲: 07:00 - 19:00</div>
+                <div class="text-xs text-gray-500">
+                    表示範囲: 07:00 - 19:00 | 
+                    総業務数: ${Object.values(deptData).reduce((sum, tasks) => sum + tasks.length, 0)}件
+                </div>
             </div>
         `;
 
-        const body = document.createElement('div');
-        body.className = 'space-y-3';
-
-        days.forEach((day, dayIdx) => {
-            const tasksOnDay = (globalTasksData[day] || []).filter(task => task.department === dept);
-            const assignmentsOnDay = globalAssignmentsData[day] || {};
-
-            const dayRow = document.createElement('div');
-            dayRow.className = 'p-3 rounded-lg';
-            dayRow.style.background = 'rgba(255,255,255,0.8)';
-            dayRow.style.border = '1px solid rgba(0,0,0,0.06)';
-
-            const dayHeader = document.createElement('div');
-            dayHeader.className = 'flex justify-between items-center mb-2';
-            dayHeader.innerHTML = `
-                <div class="text-sm font-bold">${dayLabels[dayIdx]} ${formatDayDate(dayIdx)}</div>
-                <div class="text-xs text-gray-500">${tasksOnDay.length}件の業務</div>
+        if (!hasTasks) {
+            deptCard.innerHTML += `
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-calendar-times text-3xl mb-2"></i>
+                    <div>この部門には業務が設定されていません</div>
+                </div>
             `;
-            dayRow.appendChild(dayHeader);
+        } else {
+            const body = document.createElement('div');
+            body.className = 'space-y-3';
 
-            // 時間軸ラベル
-            const timeScale = document.createElement('div');
-            timeScale.className = 'flex justify-between text-xs text-gray-500 mb-1 px-1';
-            for (let h = 7; h < 19; h += 2) {
-                const hourDiv = document.createElement('div');
-                hourDiv.textContent = `${h}:00`;
-                hourDiv.style.flex = '1';
-                hourDiv.style.textAlign = 'center';
-                timeScale.appendChild(hourDiv);
-            }
-            dayRow.appendChild(timeScale);
+            days.forEach((day, dayIdx) => {
+                const tasksOnDay = deptData[day];
+                const assignmentsOnDay = globalAssignmentsData[day] || {};
 
-            // タイムライントラック
-            const track = document.createElement('div');
-            track.className = 'relative w-full bg-gray-200 rounded overflow-hidden';
-            track.style.height = Math.max(24, tasksOnDay.length * 22 + 8) + 'px';
-            track.style.border = '1px solid #ccc';
+                const dayRow = document.createElement('div');
+                dayRow.className = 'p-3 rounded-lg';
+                dayRow.style.background = 'rgba(255,255,255,0.8)';
+                dayRow.style.border = '1px solid rgba(0,0,0,0.06)';
 
-            tasksOnDay.forEach((task, taskIdx) => {
-                const s = Math.max(timeToMinutes(task.startTime), timelineStart);
-                const e = Math.min(timeToMinutes(task.endTime), timelineEnd);
-                if (e <= timelineStart || s >= timelineEnd) return;
+                const dayHeader = document.createElement('div');
+                dayHeader.className = 'flex justify-between items-center mb-2';
+                dayHeader.innerHTML = `
+                    <div class="text-sm font-bold">${dayLabels[dayIdx]} ${formatDayDate(dayIdx)}</div>
+                    <div class="text-xs text-gray-500">${tasksOnDay.length}件の業務</div>
+                `;
+                dayRow.appendChild(dayHeader);
 
-                const left = ((s - timelineStart) / totalMinutes) * 100;
-                const width = Math.max(3, ((e - s) / totalMinutes) * 100);
-
-                // 元のタスクインデックスを取得
-                const originalTaskIndex = globalTasksData[day].findIndex(t => 
-                    t.name === task.name && t.department === task.department && 
-                    t.startTime === task.startTime && t.endTime === task.endTime
-                );
-                const assignedCEs = assignmentsOnDay[originalTaskIndex] || [];
-
-                const taskBar = document.createElement('div');
-                taskBar.className = 'absolute flex items-center justify-center text-center text-white text-xs font-bold';
-                taskBar.style.left = left + '%';
-                taskBar.style.width = width + '%';
-                taskBar.style.top = (taskIdx * 22 + 2) + 'px';
-                taskBar.style.height = '18px';
-                taskBar.style.backgroundColor = getDepartmentColor(dept);
-                taskBar.style.opacity = '0.9';
-                taskBar.style.borderRadius = '3px';
-                taskBar.style.overflow = 'hidden';
-                taskBar.style.whiteSpace = 'nowrap';
-                taskBar.style.textOverflow = 'ellipsis';
-                taskBar.style.padding = '0 4px';
-
-                const ceNames = assignedCEs.join(', ');
-                taskBar.title = `${task.name} (${task.startTime}-${task.endTime})\nCE: ${ceNames || '未配置'}`;
-                
-                if (width > 15) {
-                    taskBar.innerHTML = `${task.name} | ${ceNames || '未配置'}`;
+                if (tasksOnDay.length === 0) {
+                    const noTaskDiv = document.createElement('div');
+                    noTaskDiv.className = 'text-center py-4 text-gray-400 text-sm';
+                    noTaskDiv.textContent = '業務なし';
+                    dayRow.appendChild(noTaskDiv);
                 } else {
-                    taskBar.innerHTML = task.name.substring(0, 3) + '...';
+                    // 時間軸ラベル
+                    const timeScale = document.createElement('div');
+                    timeScale.className = 'flex justify-between text-xs text-gray-500 mb-1 px-1';
+                    for (let h = 7; h < 19; h += 2) {
+                        const hourDiv = document.createElement('div');
+                        hourDiv.textContent = `${h}:00`;
+                        hourDiv.style.flex = '1';
+                        hourDiv.style.textAlign = 'center';
+                        timeScale.appendChild(hourDiv);
+                    }
+                    dayRow.appendChild(timeScale);
+
+                    // タイムライントラック
+                    const track = document.createElement('div');
+                    track.className = 'relative w-full bg-gray-200 rounded overflow-hidden';
+                    track.style.height = Math.max(30, tasksOnDay.length * 26 + 8) + 'px';
+                    track.style.border = '1px solid #ccc';
+
+                    tasksOnDay.forEach((task, taskIdx) => {
+                        const s = Math.max(timeToMinutes(task.startTime), timelineStart);
+                        const e = Math.min(timeToMinutes(task.endTime), timelineEnd);
+                        if (e <= timelineStart || s >= timelineStart) return;
+
+                        const left = ((s - timelineStart) / totalMinutes) * 100;
+                        const width = Math.max(5, ((e - s) / totalMinutes) * 100);
+
+                        // 元のタスクインデックスを取得
+                        const originalTaskIndex = globalTasksData[day].findIndex(t => 
+                            t.name === task.name && t.department === task.department && 
+                            t.startTime === task.startTime && t.endTime === task.endTime
+                        );
+                        const assignedCEs = assignmentsOnDay[originalTaskIndex] || [];
+
+                        const taskBar = document.createElement('div');
+                        taskBar.className = 'absolute flex items-center text-white text-xs font-bold';
+                        taskBar.style.left = left + '%';
+                        taskBar.style.width = width + '%';
+                        taskBar.style.top = (taskIdx * 26 + 2) + 'px';
+                        taskBar.style.height = '22px';
+                        taskBar.style.backgroundColor = getDepartmentColor(dept);
+                        taskBar.style.opacity = '0.9';
+                        taskBar.style.borderRadius = '4px';
+                        taskBar.style.overflow = 'hidden';
+                        taskBar.style.padding = '0 6px';
+                        taskBar.style.boxSizing = 'border-box';
+
+                        const ceNames = assignedCEs.join(', ');
+                        taskBar.title = `${task.name}\n時間: ${task.startTime}-${task.endTime}\nCE: ${ceNames || '未配置'}\n件数: ${task.count || 1}件\n必要人数: ${task.requiredPeople || 1}名`;
+                        
+                        let displayText = '';
+                        if (width > 25) {
+                            displayText = `${task.name} | ${ceNames || '未配置'}`;
+                        } else if (width > 15) {
+                            displayText = task.name;
+                        } else {
+                            displayText = task.name.substring(0, 3) + '...';
+                        }
+                        
+                        taskBar.innerHTML = `<span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayText}</span>`;
+
+                        track.appendChild(taskBar);
+                    });
+
+                    dayRow.appendChild(track);
                 }
 
-                track.appendChild(taskBar);
+                body.appendChild(dayRow);
             });
 
-            dayRow.appendChild(track);
-            body.appendChild(dayRow);
-        });
+            deptCard.appendChild(body);
+        }
 
-        deptCard.appendChild(body);
         container.appendChild(deptCard);
     });
+    
+    console.log('✅ 業務別タイムライン生成完了');
 }
     // 時間帯別配置人数（曜日別）
     const ctxDay = document.getElementById('timeSlotChartDay');
@@ -3144,8 +3252,8 @@ async function showTemplateList() {
             <div class="modal-content">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold">テンプレート一覧</h2>
-                    <button onclick="closeModal('templateModal')" class="text-gray-500 hover:text-gray-700 text-2xl leading-none">
-                        ×
+                    <button onclick="closeModal('templateModal')" class="text-gray-500 hover:text-gray-700 text-2xl leading-none cursor-pointer">
+                        &times;
                     </button>
                 </div>
                 ${listHTML}
