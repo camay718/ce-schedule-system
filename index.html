@@ -457,21 +457,60 @@
 (function() {
     function ensureLoginFunctionality() {
         try {
+            const loginBtn = document.getElementById('loginButton');
             const userId = document.getElementById('userId');
-            const nameDiv = document.getElementById('nameInputDiv');
-            const secDiv = document.getElementById('securityCodeDiv');
-            
-            if (!userId || !nameDiv || !secDiv) {
-                console.warn('⚠️ ログイン要素が見つかりません');
-                return;
+            const nameInput = document.getElementById('nameInput');
+            const securityInput = document.getElementById('securityInput');
+
+            if (!loginBtn || !userId) return;
+
+            // ログインボタンのフェールセーフ設定
+            if (!loginBtn.dataset.failsafeBound) {
+                loginBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('🔄 フェールセーフログイン実行');
+                    
+                    if (typeof window.handleLogin === 'function') {
+                        window.handleLogin();
+                    } else if (typeof handleLogin === 'function') {
+                        handleLogin();
+                    } else {
+                        showMessage('ログイン機能の初期化に失敗しました', 'error');
+                        console.error('handleLogin関数が見つかりません');
+                    }
+                });
+                loginBtn.dataset.failsafeBound = 'true';
+                console.log('✅ ログインボタン フェールセーフ設定完了');
             }
 
+            // Enterキー対応
+            const bindEnter = (el) => {
+                if (el && !el.dataset.enterBound) {
+                    el.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (typeof handleLogin === 'function') {
+                                handleLogin();
+                            }
+                        }
+                    });
+                    el.dataset.enterBound = 'true';
+                }
+            };
+            bindEnter(nameInput);
+            bindEnter(securityInput);
+
+            // ユーザー選択の入力欄切替
             const toggleInputs = () => {
-                const selectedValue = userId.value;
-                if (selectedValue === 'スタッフ') {
+                const v = userId.value;
+                const nameDiv = document.getElementById('nameInputDiv');
+                const secDiv = document.getElementById('securityCodeDiv');
+                if (!nameDiv || !secDiv) return;
+                
+                if (v === 'スタッフ') {
                     nameDiv.style.display = 'block';
                     secDiv.style.display = 'none';
-                } else if (selectedValue && selectedValue !== '') {
+                } else if (v) {
                     nameDiv.style.display = 'none';
                     secDiv.style.display = 'block';
                 } else {
@@ -479,28 +518,28 @@
                     secDiv.style.display = 'none';
                 }
             };
-
-            // 初期状態を設定
-            toggleInputs();
-
-            // イベントリスナーを確実に設定
-            userId.addEventListener('change', toggleInputs, { passive: true });
-            userId.addEventListener('input', toggleInputs, { passive: true });
             
-            console.log('✅ フェールセーフ: ログイン機能設定完了');
+            userId.addEventListener('change', toggleInputs);
+            userId.addEventListener('input', toggleInputs);
+            toggleInputs(); // 初期状態を設定
+
+            console.log('✅ ログイン フェールセーフ設定完了');
         } catch (error) {
-            console.error('❌ フェールセーフエラー:', error);
+            console.error('❌ フェールセーフ設定エラー:', error);
         }
     }
 
+    // DOM読み込み完了後と遅延実行の両方で設定
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', ensureLoginFunctionality);
     } else {
         ensureLoginFunctionality();
     }
+    
+    // 他のスクリプトによる上書き対策で遅延実行
+    setTimeout(ensureLoginFunctionality, 500);
 })();
 </script>
-
     <!-- ========= MAIN INTERFACE START (行数: 265-700) ========= -->
     <div id="mainInterface" style="display:none;" class="flex">
         <!-- サイドバー -->
@@ -1355,9 +1394,8 @@ function setupAllEventListeners() {
     const securityInput = document.getElementById('securityInput');
     const nameInput = document.getElementById('nameInput');
     
-    // userIdは直接設定して確実性を高める
+    // 既存のイベントリスナーを削除してから再設定（重要）
     if (userId) {
-        // 既存のリスナーをクリアしてから設定
         userId.removeEventListener('change', handleUserIdChange);
         userId.removeEventListener('input', handleUserIdChange);
         userId.addEventListener('change', handleUserIdChange);
@@ -1365,7 +1403,12 @@ function setupAllEventListeners() {
         console.log('✅ userId イベントリスナー設定完了');
     }
     
-    setEventListenerSafely(loginButton, 'click', handleLogin, 'clickListener');
+    if (loginButton) {
+        loginButton.removeEventListener('click', handleLogin);
+        loginButton.addEventListener('click', handleLogin);
+        console.log('✅ loginButton イベントリスナー設定完了');
+    }
+
     setEventListenerSafely(securityInput, 'keypress', e => { if (e.key === 'Enter') handleLogin(); }, 'keypressListener');
     setEventListenerSafely(nameInput, 'keypress', e => { if (e.key === 'Enter') handleLogin(); }, 'keypressListener');
 
@@ -1436,13 +1479,6 @@ function setupAllEventListeners() {
     setEventListenerSafely(document.getElementById('saveCEButton'), 'click', saveCEFromModal, 'saveCEListener');
     setEventListenerSafely(document.getElementById('ceManagementButton'), 'click', openCEManagement, 'ceManageListener');
     setEventListenerSafely(document.getElementById('copyHtmlButton'), 'click', copyFullHtml, 'copyHtmlListener');
-    setEventListenerSafely(document.getElementById('expandLoginStats'), 'click', () => {
-        if (typeof showExpandedLoginStats === 'function') {
-            showExpandedLoginStats();
-        } else {
-            showMessage('拡大表示機能は実装中です', 'info');
-        }
-    }, 'expandLoginStatsListener');
     
     console.log('✅ イベントリスナー設定完了');
 }
@@ -2494,8 +2530,9 @@ function updateAllDisplays() {
         // ========= HELPER FUNCTIONS END =========
 
 // ========= GLOBAL FUNCTIONS START =========
-// 重要な関数をグローバルスコープに登録
+// 重要な関数をグローバルスコープに登録（ログイン関連を追加）
 window.handleUserIdChange = handleUserIdChange;
+window.handleLogin = handleLogin; // ← 重要：追加
 window.openTaskModal = openTaskModal;
 window.closeModal = closeModal;
 window.showModal = showModal;
@@ -2508,10 +2545,6 @@ window.addNewCE = addNewCE;
 window.deleteCEFromManagement = deleteCEFromManagement;
 window.saveCEManagement = saveCEManagement;
 window.clearAllTasks = clearAllTasks;
-window.openTemplateSaveModal = openTemplateSaveModal;
-window.updateTemplatePreview = updateTemplatePreview;
-window.executeTemplateSave = executeTemplateSave;
-window.showExpandedLoginStats = showExpandedLoginStats;
 
 // デバッグ用関数の登録
 window.debugSystemState = function() {
@@ -2521,6 +2554,14 @@ window.debugSystemState = function() {
     console.log('Firebase Ready:', isFirebaseReady);
     console.log('Tasks Data:', globalTasksData);
     console.log('Assignments Data:', globalAssignmentsData);
+};
+
+// ログイン機能デバッグ用
+window.debugLogin = function() {
+    console.log('Login Button:', document.getElementById('loginButton'));
+    console.log('User ID:', document.getElementById('userId'));
+    console.log('handleLogin function:', typeof handleLogin);
+    console.log('window.handleLogin:', typeof window.handleLogin);
 };
 // ========= GLOBAL FUNCTIONS END =========
 
