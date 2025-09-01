@@ -1112,7 +1112,7 @@
  　　　　　　 authDomain: "ce-scheduling-system.firebaseapp.com",
  　　　　　　 databaseURL: "https://ce-scheduling-system-default-rtdb.asia-southeast1.firebasedatabase.app",
  　　　　　　 projectId: "ce-scheduling-system",
- 　　　　　　 storageBucket: "ce-scheduling-system.firebasestorage.app",
+ 　　　　　　 storageBucket:"ce-scheduling-system.appspot.com",
 　　　　　　  messagingSenderId: "401096569342",
 　　　　　　  appId: "1:401096569342:web:03b0a5f5bfd09e34ae90af",
  　　　　　　 measurementId: "G-8C7X5WCED3"
@@ -1194,11 +1194,13 @@ function clearAllTasks() {
         if (!confirm('全ての業務をクリアしてもよろしいですか？')) return;
 
         globalTasksData = { 
-            monday: [], tuesday: [], wednesday: [], thursday: [], friday: [] 
-        };
+    monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], 
+    saturday: [], sunday: [] 
+};
         globalAssignmentsData = { 
-            monday: {}, tuesday: {}, wednesday: {}, thursday: {}, friday: {} 
-        };
+          monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], 
+    saturday: [], sunday: [] 
+};
 
         updateTaskDisplay();
         updatePlacementSummary();
@@ -3391,7 +3393,7 @@ function generateTimeSlotCharts() {
                 }
             }
         });
-
+　　} 
     // 時間帯別配置人数（曜日別）
     const ctxDay = document.getElementById('timeSlotChartDay');
     if (ctxDay) {
