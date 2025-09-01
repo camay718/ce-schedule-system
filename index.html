@@ -949,9 +949,97 @@
             'モニター': { code: 'secure_CEmonitor_1122_ce_system', role: 'monitor', department: null },
             '管理者': { code: 'secure_CEadmin_5711_ce_system', role: 'admin', department: null }
         };
-        // ========= GLOBAL VARIABLES END =========
+       // ========= GLOBAL VARIABLES END =========
 
-        // ========= INITIALIZATION START (行数: 952-980) =========
+// ========= CORE FUNCTIONS START =========
+function clearAllTasks() {
+    if (userRole === 'viewer') {
+        showMessage('編集権限がありません', 'warning');
+        return;
+    }
+
+    // 管理者は全業務クリア可能
+    if (userRole === 'admin') {
+        if (!confirm('全ての業務をクリアしてもよろしいですか？')) return;
+
+        globalTasksData = { 
+            monday: [], tuesday: [], wednesday: [], thursday: [], friday: [] 
+        };
+        globalAssignmentsData = { 
+            monday: {}, tuesday: {}, wednesday: {}, thursday: {}, friday: {} 
+        };
+
+        updateTaskDisplay();
+        updatePlacementSummary();
+        saveAllToFirebase();
+        recordEditHistory('全業務クリア', '管理者による全削除');
+        showMessage('全ての業務をクリアしました', 'success');
+        return;
+    }
+
+    // 編集者は自部門のみクリア
+    if (userRole === 'editor' && userDepartment) {
+        const ok = confirm(`${userDepartment}部門の全業務をクリアします。\n（他部門の業務は削除されません）\nよろしいですか？`);
+        if (!ok) return;
+
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+        days.forEach(day => {
+            const tasks = globalTasksData[day] || [];
+            const assignments = globalAssignmentsData[day] || {};
+
+            const newTasks = [];
+            const newAssignments = {};
+
+            // 自部門以外の業務だけを残す（割り当てもインデックス再構成）
+            tasks.forEach((task, idx) => {
+                if (task.department !== userDepartment) {
+                    const newIndex = newTasks.length;
+                    newTasks.push(task);
+                    if (assignments[idx]) newAssignments[newIndex] = assignments[idx];
+                }
+            });
+
+            globalTasksData[day] = newTasks;
+            globalAssignmentsData[day] = newAssignments;
+        });
+
+        updateTaskDisplay();
+        updatePlacementSummary();
+        saveAllToFirebase();
+        recordEditHistory('部門業務クリア', `${userDepartment}部門をクリア`);
+        showMessage(`${userDepartment}部門の業務をクリアしました`, 'success');
+        return;
+    }
+
+    // 権限不足またはその他のケース
+    showMessage('クリア処理の権限または部門設定が不明です', 'error');
+}
+
+// モーダル制御関数（エラー防止用）
+function showModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    
+    // テンプレートモーダルの特別処理
+    if (modalId === 'templateModal') {
+        const templateModal = document.getElementById('templateModal');
+        if (templateModal) {
+            templateModal.remove();
+        }
+    }
+}
+// ========= CORE FUNCTIONS END =========
+
+// ========= INITIALIZATION START (行数: 952-980) =========
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializeSystem);
         } else {
@@ -1059,80 +1147,94 @@
         // ========= FIREBASE FUNCTIONS END =========
 
         // ========= EVENT LISTENERS START (行数: 1052-1120) =========
-        function setupAllEventListeners() {
-            console.log('🔄 イベントリスナー設定開始');
-            
-            // ログイン関連（重複チェック付き）
-            const userId = document.getElementById('userId');
-            const loginButton = document.getElementById('loginButton');
-            const securityInput = document.getElementById('securityInput');
-            const nameInput = document.getElementById('nameInput');
-            
-            if (userId && !userId.dataset.listenerSet) {
-                userId.addEventListener('change', handleUserIdChange);
-                userId.addEventListener('input', handleUserIdChange);
-                userId.dataset.listenerSet = 'true';
-            }
-            
-            if (loginButton && !loginButton.dataset.listenerSet) {
-                loginButton.addEventListener('click', handleLogin);
-                loginButton.dataset.listenerSet = 'true';
-            }
-            
-            if (securityInput && !securityInput.dataset.listenerSet) {
-                securityInput.addEventListener('keypress', e => { 
-                    if (e.key === 'Enter') handleLogin(); 
-                });
-                securityInput.dataset.listenerSet = 'true';
-            }
-            
-            if (nameInput && !nameInput.dataset.listenerSet) {
-                nameInput.addEventListener('keypress', e => { 
-                    if (e.key === 'Enter') handleLogin(); 
-                });
-                nameInput.dataset.listenerSet = 'true';
-            }
-
-            // サイドバー・ナビゲーション
-            const toggleSidebar = document.getElementById('toggleSidebar');
-            if (toggleSidebar && !toggleSidebar.dataset.listenerSet) {
-                toggleSidebar.addEventListener('click', () => {
-                    const sidebar = document.getElementById('sidebar');
-                    if (sidebar) sidebar.classList.toggle('expanded');
-                });
-                toggleSidebar.dataset.listenerSet = 'true';
-            }
-
-            // ナビゲーションタブ
-            document.getElementById('scheduleTab').addEventListener('click', () => showScreen('scheduleContent', 'scheduleTab'));
-            document.getElementById('timelineTab').addEventListener('click', () => showScreen('timelineContent', 'timelineTab'));
-            document.getElementById('analysisTab').addEventListener('click', () => showScreen('analysisContent', 'analysisTab'));
-            document.getElementById('settingsTab').addEventListener('click', () => showScreen('settingsContent', 'settingsTab'));
-
-            // 業務・スケジュール関連
-            document.getElementById('addTaskButton').addEventListener('click', () => openTaskModal('create'));
-            document.getElementById('clearTasksButton').addEventListener('click', clearAllTasks);
-            document.getElementById('logoutButton').addEventListener('click', handleLogout);
-            document.getElementById('saveTaskButton').addEventListener('click', saveTaskFromModal);
-            document.getElementById('taskDeleteButton').addEventListener('click', deleteTaskFromModal);
-
-            // 曜日タブ
-            document.querySelectorAll('.day-tab').forEach(btn => {
-                btn.addEventListener('click', () => { switchDay(btn.getAttribute('data-day')); });
-            });
-
-            // 週開始日・テンプレート
-            document.getElementById('setWeekButton').addEventListener('click', setWeekStartDate);
-            document.getElementById('templateSaveButton').addEventListener('click', saveTemplate);
-            document.getElementById('templateLoadButton').addEventListener('click', showTemplateList);
-
-            // CE・管理者
-            document.getElementById('saveCEButton').addEventListener('click', saveCEFromModal);
-            document.getElementById('ceManagementButton').addEventListener('click', openCEManagement);
-            document.getElementById('copyHtmlButton').addEventListener('click', copyFullHtml);
-            
-            console.log('✅ イベントリスナー設定完了');
+       function setupAllEventListeners() {
+    console.log('🔄 イベントリスナー設定開始');
+    
+    // 重複設定防止のため、既存リスナーをチェック
+    const setEventListenerSafely = (element, event, handler, identifier) => {
+        if (element && !element.dataset[identifier]) {
+            element.addEventListener(event, handler);
+            element.dataset[identifier] = 'true';
         }
+    };
+
+    // ログイン関連
+    const userId = document.getElementById('userId');
+    const loginButton = document.getElementById('loginButton');
+    const securityInput = document.getElementById('securityInput');
+    const nameInput = document.getElementById('nameInput');
+    
+    setEventListenerSafely(userId, 'change', handleUserIdChange, 'changeListener');
+    setEventListenerSafely(userId, 'input', handleUserIdChange, 'inputListener');
+    setEventListenerSafely(loginButton, 'click', handleLogin, 'clickListener');
+    setEventListenerSafely(securityInput, 'keypress', e => { if (e.key === 'Enter') handleLogin(); }, 'keypressListener');
+    setEventListenerSafely(nameInput, 'keypress', e => { if (e.key === 'Enter') handleLogin(); }, 'keypressListener');
+
+    // サイドバー・ナビゲーション
+    const toggleSidebar = document.getElementById('toggleSidebar');
+    setEventListenerSafely(toggleSidebar, 'click', () => {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) sidebar.classList.toggle('expanded');
+    }, 'toggleListener');
+
+    // ナビゲーションタブ
+    const navTabs = [
+        { id: 'scheduleTab', content: 'scheduleContent' },
+        { id: 'timelineTab', content: 'timelineContent' },
+        { id: 'analysisTab', content: 'analysisContent' },
+        { id: 'settingsTab', content: 'settingsContent' }
+    ];
+    
+    navTabs.forEach(tab => {
+        const element = document.getElementById(tab.id);
+        setEventListenerSafely(element, 'click', () => showScreen(tab.content, tab.id), 'navListener');
+    });
+
+    // 業務・スケジュール関連
+    const actionButtons = [
+        { id: 'addTaskButton', handler: () => openTaskModal('create') },
+        { id: 'clearTasksButton', handler: clearAllTasks },
+        { id: 'logoutButton', handler: handleLogout },
+        { id: 'saveTaskButton', handler: saveTaskFromModal },
+        { id: 'taskDeleteButton', handler: deleteTaskFromModal }
+    ];
+    
+    actionButtons.forEach(btn => {
+        const element = document.getElementById(btn.id);
+        setEventListenerSafely(element, 'click', btn.handler, 'actionListener');
+    });
+
+    // 曜日タブ
+    document.querySelectorAll('.day-tab').forEach(btn => {
+        setEventListenerSafely(btn, 'click', () => switchDay(btn.getAttribute('data-day')), 'dayTabListener');
+    });
+
+    // 週開始日・テンプレート
+    const utilityButtons = [
+        { id: 'setWeekButton', handler: setWeekStartDate },
+        { id: 'templateSaveButton', handler: saveTemplate },
+        { id: 'templateLoadButton', handler: showTemplateList }
+    ];
+    
+    utilityButtons.forEach(btn => {
+        const element = document.getElementById(btn.id);
+        setEventListenerSafely(element, 'click', btn.handler, 'utilityListener');
+    });
+
+    // CE・管理者
+    const managementButtons = [
+        { id: 'saveCEButton', handler: saveCEFromModal },
+        { id: 'ceManagementButton', handler: openCEManagement },
+        { id: 'copyHtmlButton', handler: copyFullHtml }
+    ];
+    
+    managementButtons.forEach(btn => {
+        const element = document.getElementById(btn.id);
+        setEventListenerSafely(element, 'click', btn.handler, 'managementListener');
+    });
+    
+    console.log('✅ イベントリスナー設定完了');
+}
         // ========= EVENT LISTENERS END =========
 
          // ========= LOGIN FUNCTIONS START (行数: 1122-1220) =========
@@ -2125,14 +2227,32 @@ window.removeCEAssignment = removeCEAssignment;
         }
         // ========= HELPER FUNCTIONS END =========
 
-        // ========= GLOBAL FUNCTIONS START (行数: 1902-1950) =========
-        window.handleUserIdChange = handleUserIdChange;
-        window.openTaskModal = openTaskModal;
-        window.closeModal = closeModal;
-        window.showModal = showModal;
-        window.printElement = printElement;
-        window.printCanvas = printCanvas;
-        // ========= GLOBAL FUNCTIONS END =========
+       // ========= GLOBAL FUNCTIONS START =========
+// 重要な関数をグローバルスコープに登録
+window.handleUserIdChange = handleUserIdChange;
+window.openTaskModal = openTaskModal;
+window.closeModal = closeModal;
+window.showModal = showModal;
+window.printElement = printElement;
+window.printCanvas = printCanvas;
+window.removeCEAssignment = removeCEAssignment;
+window.loadTemplate = loadTemplate;
+window.deleteTemplate = deleteTemplate;
+window.addNewCE = addNewCE;
+window.deleteCEFromManagement = deleteCEFromManagement;
+window.saveCEManagement = saveCEManagement;
+window.clearAllTasks = clearAllTasks;
+
+// デバッグ用関数の登録
+window.debugSystemState = function() {
+    console.log('Current User:', currentUser);
+    console.log('User Role:', userRole);
+    console.log('User Department:', userDepartment);
+    console.log('Firebase Ready:', isFirebaseReady);
+    console.log('Tasks Data:', globalTasksData);
+    console.log('Assignments Data:', globalAssignmentsData);
+};
+// ========= GLOBAL FUNCTIONS END =========
 
 // ========= COMPLETE FUNCTIONS START (行数: 1952-2545) =========
 // Chart.jsインスタンス管理
