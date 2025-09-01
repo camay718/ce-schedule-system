@@ -628,7 +628,7 @@
                         <i class="fas fa-print mr-1"></i>印刷
                     </button>
                 </div>
-                <div id="departmentTimelineContainer" class="space-y-6"></div>
+                  <div id="departmentTimelineContainer" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
             </div>
             <!-- 個人別タイムライン -->
             <div id="timelineContent" class="screen-content" style="display:none;">
@@ -668,7 +668,7 @@
                                 <i class="fas fa-print mr-1"></i>印刷
                             </button>
                         </div>
-                        <div class="h-72">
+                        <div style="height: 600px;">
                             <canvas id="departmentChart"></canvas>
                         </div>
                     </div>
@@ -685,31 +685,31 @@
                         </div>
                     </div>
 
-                    <div class="glassmorphism rounded-2xl p-6">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-lg font-bold">時間帯別配置人数（部門別）</h3>
-                            <button class="btn-primary text-sm" onclick="printCanvas('timeSlotChartDept')">
-                                <i class="fas fa-print mr-1"></i>印刷
-                            </button>
+                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="glassmorphism rounded-2xl p-6">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-lg font-bold">時間帯別配置人数（部門別）</h3>
+                                <button class="btn-primary text-sm" onclick="printCanvas('timeSlotChartDept')">
+                                    <i class="fas fa-print mr-1"></i>印刷
+                                </button>
+                            </div>
+                            <div class="h-80">
+                                <canvas id="timeSlotChartDept"></canvas>
+                            </div>
                         </div>
-                        <div class="h-72">
-                            <canvas id="timeSlotChartDept"></canvas>
-                        </div>
-                    </div>
 
-                    <div class="glassmorphism rounded-2xl p-6">
-                        <div class="flex items-center justify-between mb-3">
-                            <h3 class="text-lg font-bold">時間帯別配置人数（曜日別）</h3>
-                            <button class="btn-primary text-sm" onclick="printCanvas('timeSlotChartDay')">
-                                <i class="fas fa-print mr-1"></i>印刷
-                            </button>
-                        </div>
-                        <div class="h-72">
-                            <canvas id="timeSlotChartDay"></canvas>
+                        <div class="glassmorphism rounded-2xl p-6">
+                            <div class="flex items-center justify-between mb-3">
+                                <h3 class="text-lg font-bold">時間帯別配置人数（曜日別）</h3>
+                                <button class="btn-primary text-sm" onclick="printCanvas('timeSlotChartDay')">
+                                    <i class="fas fa-print mr-1"></i>印刷
+                                </button>
+                            </div>
+                            <div class="h-80">
+                                <canvas id="timeSlotChartDay"></canvas>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
             <!-- 設定 -->
             <div id="settingsContent" class="screen-content" style="display:none;">
@@ -748,27 +748,89 @@
                             </button>
                         </div>
                         <div class="glassmorphism rounded-xl p-4">
-                            <h4 class="font-bold mb-2">ログイン集計</h4>
+                          <div class="glassmorphism rounded-xl p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h4 class="font-bold">ログイン集計</h4>
+                                <button id="expandLoginStats" class="btn-primary text-xs" onclick="showExpandedLoginStats()">
+                                    <i class="fas fa-expand mr-1"></i>拡大表示
+                                </button>
+                            </div>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                                 <div>
-                                    <h5 class="font-bold mb-1">ログイン履歴</h5>
-                                    <div id="loginHistoryList" class="max-h-48 overflow-y-auto pr-2"></div>
+                                    <h5 class="font-bold mb-1">ログイン履歴（直近10件）</h5>
+                                    <div id="loginHistoryList" class="max-h-32 overflow-y-auto pr-2"></div>
                                 </div>
                                 <div>
-                                    <h5 class="font-bold mb-1">ユーザー別集計</h5>
-                                    <div id="loginStats" class="max-h-48 overflow-y-auto pr-2"></div>
+                                    <h5 class="font-bold mb-1">ユーザー別集計（上位5名）</h5>
+                                    <div id="loginStats" class="max-h-32 overflow-y-auto pr-2"></div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
     <!-- ========= MAIN INTERFACE END ========= -->
 
     <!-- ========= MODALS START (行数: 705-900) ========= -->
-    <!-- モーダル: 業務追加/編集 -->
+        <!-- モーダル: テンプレート保存 -->
+    <div id="templateSaveModal" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">テンプレート保存</h2>
+                <button onclick="closeModal('templateSaveModal')" class="text-gray-500 hover:text-gray-700 text-2xl leading-none cursor-pointer">
+                    &times;
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">テンプレート名</label>
+                    <input type="text" id="templateNameInput" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="テンプレート名を入力"/>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">保存対象部門</label>
+                    <select id="templateDepartmentSelect" class="w-full p-3 border border-gray-300 rounded-lg" onchange="updateTemplatePreview()">
+                        <!-- オプションはJSで動的に生成 -->
+                    </select>
+                </div>
+                <div id="templatePreview" class="bg-gray-50 rounded-lg p-3">
+                    <h4 class="font-bold mb-2">保存対象業務プレビュー</h4>
+                    <div id="templatePreviewContent">部門を選択してください</div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="executeTemplateSave" class="btn-primary" onclick="executeTemplateSave()">
+                    <i class="fas fa-save mr-2"></i>保存実行
+                </button>
+                <button class="px-4 py-2 rounded-lg border" onclick="closeModal('templateSaveModal')">キャンセル</button>
+            </div>
+        </div>
+    </div>
+  <!-- モーダル: ログイン集計拡大表示 -->
+    <div id="expandedLoginStatsModal" class="modal">
+        <div class="modal-content" style="max-width: 1200px; width: 95%;">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">ログイン集計 - 詳細表示</h2>
+                <button onclick="closeModal('expandedLoginStatsModal')" class="text-gray-500 hover:text-gray-700 text-2xl leading-none cursor-pointer">
+                    &times;
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glassmorphism rounded-xl p-4">
+                    <h3 class="text-lg font-bold mb-3">ログイン履歴（直近100件）</h3>
+                    <div id="expandedLoginHistoryList" class="max-h-96 overflow-y-auto pr-2 space-y-1"></div>
+                </div>
+                
+                <div class="glassmorphism rounded-xl p-4">
+                    <h3 class="text-lg font-bold mb-3">ユーザー別集計</h3>
+                    <div id="expandedLoginStats" class="max-h-96 overflow-y-auto pr-2 space-y-1"></div>
+                </div>
+            </div>
+            
+            <div class="mt-6 glassmorphism rounded-xl p-4">
+                <h3 class="text-lg font-bold mb-3">アクセス統計サマリ</h3>
+                <div id="loginStatsSummary" class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center"></div>
+            </div>
+        </div>
+    </div>
+<!-- モーダル: 業務追加/編集 -->
     <div id="taskModal" class="modal">
         <div class="modal-content">
             <div class="flex justify-between items-center mb-4">
@@ -1272,7 +1334,7 @@ function setupAllEventListeners() {
         setEventListenerSafely(element, 'click', () => showScreen(tab.content, tab.id), 'navListener');
     });
 
-    // 業務・スケジュール関連（重複ID対策：querySelectorAllで両方に設定）
+    // 業務・スケジュール関連（ID重複対策：querySelectorAllで両方に設定）
     document.querySelectorAll('[id="addTaskButton"]').forEach((element, index) => {
         if (element && !element.dataset[`addTaskListener_${index}`]) {
             element.addEventListener('click', () => openTaskModal('create'));
@@ -1305,13 +1367,14 @@ function setupAllEventListeners() {
 
     // 週開始日・テンプレート
     setEventListenerSafely(document.getElementById('setWeekButton'), 'click', setWeekStartDate, 'setWeekListener');
-    setEventListenerSafely(document.getElementById('templateSaveButton'), 'click', saveTemplate, 'templateSaveListener');
+    setEventListenerSafely(document.getElementById('templateSaveButton'), 'click', openTemplateSaveModal, 'templateSaveListener');
     setEventListenerSafely(document.getElementById('templateLoadButton'), 'click', showTemplateList, 'templateLoadListener');
 
     // CE・管理者
     setEventListenerSafely(document.getElementById('saveCEButton'), 'click', saveCEFromModal, 'saveCEListener');
     setEventListenerSafely(document.getElementById('ceManagementButton'), 'click', openCEManagement, 'ceManageListener');
     setEventListenerSafely(document.getElementById('copyHtmlButton'), 'click', copyFullHtml, 'copyHtmlListener');
+    setEventListenerSafely(document.getElementById('expandLoginStats'), 'click', showExpandedLoginStats, 'expandLoginStatsListener');
     
     console.log('✅ イベントリスナー設定完了');
 }
@@ -1889,63 +1952,63 @@ function updatePlacementSummary() {
         // ========= TASK DISPLAY FUNCTIONS END =========
 
         // ========= WEEKLY OVERVIEW START (行数: 1502-1580) =========
-        function generateWeeklyOverview() {
-            const container = document.getElementById('overviewContent');
-            if (!container) return;
+ function generateWeeklyOverview() {
+    const container = document.getElementById('overviewContent');
+    if (!container) return;
 
-              const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-            const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜'];
-            
-            container.innerHTML = '';
-            const grid = document.createElement('div');
-            grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4';
-            
-            days.forEach((day, dayIndex) => {
-                const tasks = globalTasksData[day] || [];
-                const assignments = globalAssignmentsData[day] || {};
-                
-                let totalRequired = 0;
-                let totalAssigned = 0;
-                
-                tasks.forEach((task, index) => {
-                    totalRequired += task.requiredPeople;
-                    totalAssigned += (assignments[index] || []).length;
-                });
-                
-                const percentage = totalRequired > 0 ? Math.round((totalAssigned / totalRequired) * 100) : 0;
-                const colorClass = percentage >= 100 ? 'text-green-600' : percentage >= 80 ? 'text-yellow-600' : 'text-red-600';
-                
-                const dayCard = document.createElement('div');
-                dayCard.className = 'glassmorphism rounded-2xl p-4';
-                dayCard.innerHTML = `
-                    <h4 class="font-bold text-center mb-3">${dayLabels[dayIndex]}</h4>
-                    <div class="text-center mb-3">
-                        <div class="text-2xl font-bold ${colorClass}">${totalAssigned}/${totalRequired}名</div>
-                        <div class="text-sm ${colorClass}">(${percentage}%)</div>
-                        <div class="text-xs text-gray-600">${tasks.length}件の業務</div>
-                    </div>
-                    <div class="space-y-2">
-                        ${tasks.map((task, index) => {
-                            const taskAssignments = assignments[index] || [];
-                            return `
-                                <div class="department-area" style="--dept-color: ${getDepartmentColor(task.department)}">
-                                    <div class="font-bold text-sm">${task.department}</div>
-                                    <div class="text-xs">${task.name} (${task.startTime}-${task.endTime})</div>
-                                    <div class="text-xs">必要: ${task.requiredPeople}名 / 配置: ${taskAssignments.length}名</div>
-                                    <div class="mt-1">
-                                        ${taskAssignments.map(name => `<span class="assigned-ce">${name}</span>`).join('') || '<span class="text-xs text-gray-400">未配置</span>'}
-                                    </div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                `;
-                
-                grid.appendChild(dayCard);
-            });
-            
-            container.appendChild(grid);
-        }
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜', '土曜', '日曜'];
+    
+    container.innerHTML = '';
+    const grid = document.createElement('div');
+    grid.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-4';
+    
+    days.forEach((day, dayIndex) => {
+        const tasks = globalTasksData[day] || [];
+        const assignments = globalAssignmentsData[day] || {};
+        
+        let totalRequired = 0;
+        let totalAssigned = 0;
+        
+        tasks.forEach((task, index) => {
+            totalRequired += task.requiredPeople;
+            totalAssigned += (assignments[index] || []).length;
+        });
+        
+        const percentage = totalRequired > 0 ? Math.round((totalAssigned / totalRequired) * 100) : 0;
+        const colorClass = percentage >= 100 ? 'text-green-600' : percentage >= 80 ? 'text-yellow-600' : 'text-red-600';
+        
+        const dayCard = document.createElement('div');
+        dayCard.className = 'glassmorphism rounded-2xl p-4';
+        dayCard.innerHTML = `
+            <h4 class="font-bold text-center mb-3">${dayLabels[dayIndex]} ${formatDayDate(dayIndex)}</h4>
+            <div class="text-center mb-3">
+                <div class="text-2xl font-bold ${colorClass}">${totalAssigned}/${totalRequired}名</div>
+                <div class="text-sm ${colorClass}">(${percentage}%)</div>
+                <div class="text-xs text-gray-600">${tasks.length}件の業務</div>
+            </div>
+            <div class="space-y-2">
+                ${tasks.map((task, index) => {
+                    const taskAssignments = assignments[index] || [];
+                    return `
+                        <div class="department-area" style="--dept-color: ${getDepartmentColor(task.department)}">
+                            <div class="font-bold text-sm">${task.department}</div>
+                            <div class="text-xs">${task.name} (${task.startTime}-${task.endTime})</div>
+                            <div class="text-xs">必要: ${task.requiredPeople}名 / 配置: ${taskAssignments.length}名</div>
+                            <div class="mt-1">
+                                ${taskAssignments.map(name => `<span class="assigned-ce">${name}</span>`).join('') || '<span class="text-xs text-gray-400">未配置</span>'}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+        grid.appendChild(dayCard);
+    });
+    
+    container.appendChild(grid);
+}
         // ========= WEEKLY OVERVIEW END =========
 
         // ========= TASK MODAL FUNCTIONS START (行数: 1582-1680) =========
@@ -2362,7 +2425,7 @@ function updateAllDisplays() {
         }
         // ========= HELPER FUNCTIONS END =========
 
-       // ========= GLOBAL FUNCTIONS START =========
+// ========= GLOBAL FUNCTIONS START =========
 // 重要な関数をグローバルスコープに登録
 window.handleUserIdChange = handleUserIdChange;
 window.openTaskModal = openTaskModal;
@@ -2377,6 +2440,10 @@ window.addNewCE = addNewCE;
 window.deleteCEFromManagement = deleteCEFromManagement;
 window.saveCEManagement = saveCEManagement;
 window.clearAllTasks = clearAllTasks;
+window.openTemplateSaveModal = openTemplateSaveModal;
+window.updateTemplatePreview = updateTemplatePreview;
+window.executeTemplateSave = executeTemplateSave;
+window.showExpandedLoginStats = showExpandedLoginStats;
 
 // デバッグ用関数の登録
 window.debugSystemState = function() {
@@ -2408,8 +2475,8 @@ function generateDepartmentTimeline() {
     }
     container.innerHTML = '';
 
-      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜', '土曜', '日曜'];
     const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
 
     // 表示時間範囲（07:00-19:00）
@@ -2420,7 +2487,6 @@ function generateDepartmentTimeline() {
     departments.forEach(dept => {
         console.log(`🔄 ${dept}のタイムライン生成中`);
         
-        // 部門の業務データを収集
         let hasTasks = false;
         const deptData = {};
         
@@ -2502,13 +2568,11 @@ function generateDepartmentTimeline() {
                     tasksOnDay.forEach((task, taskIdx) => {
                         const s = Math.max(timeToMinutes(task.startTime), timelineStart);
                         const e = Math.min(timeToMinutes(task.endTime), timelineEnd);
-                        // 重要な修正：条件バグを修正
                         if (e <= timelineStart || s >= timelineEnd) return;
 
                         const left = ((s - timelineStart) / totalMinutes) * 100;
                         const width = Math.max(5, ((e - s) / totalMinutes) * 100);
 
-                        // 元のタスクインデックスを取得
                         const originalTaskIndex = globalTasksData[day].findIndex(t => 
                             t.name === task.name && t.department === task.department && 
                             t.startTime === task.startTime && t.endTime === task.endTime
@@ -2559,8 +2623,6 @@ function generateDepartmentTimeline() {
     
     console.log('✅ 業務別タイムライン生成完了');
 }
-
-
 // ========== 個人別タイムライン（既存機能維持） ==========
 function generateTimeline() {
     const container = document.getElementById('timelineContainer');
@@ -2944,9 +3006,14 @@ function generateIndividualChart() {
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const ceData = {};
 
-    // 全CEの初期化
+    // 全CEの初期化（部門情報も記録）
     CE_LIST.forEach(ce => {
-        ceData[ce.name] = { totalHours: 0, daySchedules: {} };
+        ceData[ce.name] = { 
+            totalHours: 0, 
+            daySchedules: {},
+            primaryDepartment: null,
+            departmentHours: {}
+        };
         days.forEach(day => {
             ceData[ce.name].daySchedules[day] = [];
         });
@@ -2973,9 +3040,10 @@ function generateIndividualChart() {
         });
     });
 
-    // 各CEの重複を除いた実労働時間を計算（タイムスロット方式）
+    // 各CEの重複を除いた実労働時間を計算
     Object.keys(ceData).forEach(ceName => {
         let totalHours = 0;
+        const deptHours = {};
         
         days.forEach(day => {
             const dayTasks = ceData[ceName].daySchedules[day];
@@ -2983,31 +3051,55 @@ function generateIndividualChart() {
             
             // 1分単位でタイムスロットを記録（重複除外）
             const timeSlots = new Set();
+            const deptTimeSlots = {};
             
             dayTasks.forEach(task => {
                 const startMinutes = timeToMinutes(task.startTime);
                 const endMinutes = timeToMinutes(task.endTime);
                 
+                if (!deptTimeSlots[task.department]) {
+                    deptTimeSlots[task.department] = new Set();
+                }
+                
                 // 1分単位でタイムスロットを記録
                 for (let minute = startMinutes; minute < endMinutes; minute++) {
                     timeSlots.add(minute);
+                    deptTimeSlots[task.department].add(minute);
                 }
             });
             
             // 実労働時間を加算（重複除外済み）
-            totalHours += timeSlots.size / 60; // 分を時間に変換
+            totalHours += timeSlots.size / 60;
+            
+            // 部門別時間を集計
+            Object.keys(deptTimeSlots).forEach(dept => {
+                if (!deptHours[dept]) deptHours[dept] = 0;
+                deptHours[dept] += deptTimeSlots[dept].size / 60;
+            });
         });
         
-        ceData[ceName].totalHours = Math.round(totalHours * 10) / 10; // 小数点1桁で丸める
+        ceData[ceName].totalHours = Math.round(totalHours * 10) / 10;
+        ceData[ceName].departmentHours = deptHours;
+        
+        // 主要部門を決定（最も時間の長い部門）
+        const maxDept = Object.keys(deptHours).reduce((max, dept) => 
+            deptHours[dept] > (deptHours[max] || 0) ? dept : max, null
+        );
+        ceData[ceName].primaryDepartment = maxDept;
     });
 
     // 労働時間でソートして全員表示
     const sortedData = Object.entries(ceData)
-        .map(([name, data]) => [name, data.totalHours])
+        .map(([name, data]) => [name, data.totalHours, data.primaryDepartment])
         .sort(([,a], [,b]) => b - a);
 
     const labels = sortedData.map(([name]) => name);
     const data = sortedData.map(([,hours]) => hours);
+    const backgroundColors = sortedData.map(([,hours,dept]) => {
+        if (hours === 0) return 'rgba(200, 200, 200, 0.6)';
+        return dept ? getDepartmentColor(dept) + '80' : 'rgba(76, 175, 80, 0.6)';
+    });
+    const borderColors = backgroundColors.map(color => color.replace('80', '').replace('0.6', '1'));
 
     chartInstances.individualChart = new Chart(ctx, {
         type: 'bar',
@@ -3016,8 +3108,8 @@ function generateIndividualChart() {
             datasets: [{
                 label: '実労働時間(時間)',
                 data: data,
-                backgroundColor: 'rgba(76, 175, 80, 0.6)',
-                borderColor: 'rgba(76, 175, 80, 1)',
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
                 borderWidth: 1
             }]
         },
@@ -3030,17 +3122,15 @@ function generateIndividualChart() {
                     beginAtZero: true,
                     title: {
                         display: true,
-                        text: '時間（重複除外済み）'
+                        text: '時間（重複除外済み・部門色表示）'
                     }
                 },
                 y: {
                     ticks: {
-                        autoSkip: false, // 全てのラベルを表示
+                        autoSkip: false,
                         maxRotation: 0,
                         minRotation: 0,
-                        font: {
-                            size: 11
-                        }
+                        font: { size: 11 }
                     }
                 }
             },
@@ -3054,12 +3144,15 @@ function generateIndividualChart() {
                             const ceInfo = ceData[ceName];
                             let tooltip = `実労働時間: ${hours}時間`;
                             
-                            // 各曜日の業務数を追加
-                            const dayTasks = days.map(day => ceInfo.daySchedules[day].length);
-                            const totalTasks = dayTasks.reduce((sum, count) => sum + count, 0);
-                            if (totalTasks > 0) {
-                                tooltip += `\n総業務数: ${totalTasks}件`;
-                                tooltip += `\n曜日別: 月${dayTasks[0]} 火${dayTasks[1]} 水${dayTasks[2]} 木${dayTasks[3]} 金${dayTasks[4]}`;
+                            if (ceInfo.primaryDepartment) {
+                                tooltip += `\n主要部門: ${ceInfo.primaryDepartment}`;
+                            }
+                            
+                            const deptBreakdown = Object.entries(ceInfo.departmentHours)
+                                .map(([dept, h]) => `${dept}: ${Math.round(h*10)/10}h`)
+                                .join(', ');
+                            if (deptBreakdown) {
+                                tooltip += `\n部門別: ${deptBreakdown}`;
                             }
                             
                             return tooltip;
@@ -3086,28 +3179,28 @@ function generateTimeSlotCharts() {
 
         const deptData = calculateTimeSlotData(timeSlots, departments, 'department');
         
-        chartInstances.timeSlotChartDept = new Chart(ctxDept, {
-            type: 'bar',
+ chartInstances.timeSlotChartDept = new Chart(ctxDept, {
+            type: 'line',
             data: {
                 labels: timeSlots,
                 datasets: departments.map(dept => ({
                     label: dept,
                     data: timeSlots.map(slot => deptData[slot][dept] || 0),
-                    backgroundColor: getDepartmentColor(dept) + '80',
+                    backgroundColor: getDepartmentColor(dept) + '20',
                     borderColor: getDepartmentColor(dept),
-                    borderWidth: 1
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.1
                 }))
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    x: { stacked: true },
-                    y: { stacked: true, beginAtZero: true }
+                    y: { beginAtZero: true }
                 }
             }
         });
-    }
 
     // 時間帯別配置人数（曜日別）
     const ctxDay = document.getElementById('timeSlotChartDay');
@@ -3205,117 +3298,178 @@ async function saveTemplate() {
         showMessage('テンプレート保存権限がありません', 'warning');
         return;
     }
+    openTemplateSaveModal();
+}
+
+function openTemplateSaveModal() {
+    const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
+    const deptSelect = document.getElementById('templateDepartmentSelect');
     
-    const templateName = prompt('テンプレート名を入力してください:');
-    if (!templateName || !templateName.trim()) {
+    // オプションをクリア
+    deptSelect.innerHTML = '';
+    
+    // 管理者は全部門選択可能
+    if (userRole === 'admin') {
+        const allOption = document.createElement('option');
+        allOption.value = 'all';
+        allOption.textContent = '全部門';
+        deptSelect.appendChild(allOption);
+    }
+    
+    // 各部門オプションを追加
+    departments.forEach(dept => {
+        const option = document.createElement('option');
+        option.value = dept;
+        option.textContent = dept;
+        deptSelect.appendChild(option);
+    });
+    
+    // デフォルト選択
+    if (userRole === 'admin') {
+        deptSelect.value = 'all';
+    } else if (userDepartment) {
+        deptSelect.value = userDepartment;
+    }
+    
+    document.getElementById('templateNameInput').value = '';
+    showModal('templateSaveModal');
+    updateTemplatePreview();
+}
+
+function updateTemplatePreview() {
+    const deptSelect = document.getElementById('templateDepartmentSelect');
+    const previewContent = document.getElementById('templatePreviewContent');
+    const saveButton = document.getElementById('executeTemplateSave');
+    
+    if (!deptSelect || !previewContent || !saveButton) return;
+    
+    const selectedDept = deptSelect.value;
+    if (!selectedDept) {
+        previewContent.innerHTML = '部門を選択してください';
+        return;
+    }
+
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayLabels = ['月', '火', '水', '木', '金', '土', '日'];
+    
+    let totalTasks = 0;
+    let previewHTML = '<div class="space-y-2 max-h-48 overflow-y-auto">';
+    
+    days.forEach((day, dayIdx) => {
+        const tasks = (globalTasksData[day] || []).filter(task => 
+            selectedDept === 'all' || task.department === selectedDept
+        );
+        
+        if (tasks.length > 0) {
+            totalTasks += tasks.length;
+            previewHTML += `
+                <div class="border-l-4 pl-3" style="border-color: ${selectedDept === 'all' ? '#4CAF50' : getDepartmentColor(selectedDept)}">
+                    <div class="font-bold text-sm">${dayLabels[dayIdx]}曜: ${tasks.length}件</div>
+                    ${tasks.map(task => `
+                        <div class="text-xs text-gray-600">• ${task.name} (${task.startTime}-${task.endTime})</div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    });
+    
+    previewHTML += '</div>';
+    
+    if (totalTasks === 0) {
+        previewContent.innerHTML = '<div class="text-gray-500">選択した部門に業務がありません</div>';
+        saveButton.disabled = true;
+        saveButton.classList.add('opacity-50');
+    } else {
+        previewContent.innerHTML = `
+            <div class="mb-2 font-bold text-green-600">合計 ${totalTasks}件の業務が保存されます</div>
+            ${previewHTML}
+        `;
+        saveButton.disabled = false;
+        saveButton.classList.remove('opacity-50');
+    }
+    
+    // ボタンの色を部門色に合わせる
+    if (selectedDept !== 'all') {
+        const deptColor = getDepartmentColor(selectedDept);
+        saveButton.style.background = `linear-gradient(135deg, ${deptColor}, ${deptColor}dd)`;
+    } else {
+        saveButton.style.background = '';
+        saveButton.className = 'btn-primary';
+    }
+}
+
+async function executeTemplateSave() {
+    const nameInput = document.getElementById('templateNameInput');
+    const deptSelect = document.getElementById('templateDepartmentSelect');
+    
+    const templateName = nameInput.value.trim();
+    const selectedDept = deptSelect.value;
+    
+    if (!templateName) {
         showMessage('テンプレート名を入力してください', 'warning');
         return;
     }
+    
+    // 他部門保存の確認（編集者の場合）
+    if (userRole === 'editor' && userDepartment && selectedDept !== userDepartment && selectedDept !== 'all') {
+        const ok = confirm(`他部門（${selectedDept}）の業務をテンプレートとして保存します。\n実行しますか？`);
+        if (!ok) return;
+    }
 
-    if (userRole === 'editor' && userDepartment) {
-        const hasOtherDeptTasks = checkOtherDepartmentTasks();
-        if (hasOtherDeptTasks) {
-            if (!confirm(`他部門の業務も含まれています。\n全ての業務をテンプレートとして保存しますか？\n（${userDepartment}部門のみ保存したい場合は「キャンセル」してください）`)) {
-                return;
-            }
-        }
-    }
-    
-    const templateData = {
-        name: templateName.trim(),
-        tasks: JSON.parse(JSON.stringify(globalTasksData)),
-        assignments: JSON.parse(JSON.stringify(globalAssignmentsData)),
-        ceList: JSON.parse(JSON.stringify(CE_LIST)),
-        createdBy: currentUser,
-        createdAt: new Date().toISOString(),
-        department: userRole === 'admin' ? 'all' : userDepartment
-    };
-    
-    if (isFirebaseReady && database) {
-        try {
-            await database.ref(`${DATA_ROOT}/templates/${templateName.trim()}`).set(templateData);
-            showMessage('テンプレートを保存しました', 'success');
-            recordEditHistory('テンプレート保存', `${templateName.trim()} (${templateData.department})`);
-            loadTemplateListUI();
-        } catch (error) {
-            console.error('テンプレート保存エラー:', error);
-            showMessage('テンプレート保存に失敗しました', 'error');
-        }
-    } else {
-        showMessage('Firebase接続が必要です', 'error');
-    }
-}
-
-async function showTemplateList() {
-    if (!isFirebaseReady || !database) {
-        showMessage('Firebase接続が必要です', 'error');
-        return;
-    }
-    
     try {
-        const snapshot = await database.ref(`${DATA_ROOT}/templates`).once('value');
-        if (!snapshot.exists()) {
-            showMessage('保存されたテンプレートがありません', 'info');
-            return;
-        }
+        // 選択部門の業務のみ抽出
+        const filteredTasks = {};
+        const filteredAssignments = {};
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
         
-        const templates = snapshot.val();
-        const templateList = Object.keys(templates);
-        
-        // 既存のテンプレートモーダルを削除
-        const existingModal = document.getElementById('templateModal');
-        if (existingModal) existingModal.remove();
-        
-        let listHTML = '<div class="space-y-2">';
-        templateList.forEach(name => {
-            const template = templates[name];
-            const canAccess = userRole === 'admin' || template.department === 'all' || template.department === userDepartment;
-            const deptLabel = template.department === 'all' ? '全部門' : (template.department || '不明');
+        days.forEach(day => {
+            const allTasks = globalTasksData[day] || [];
+            const allAssignments = globalAssignmentsData[day] || {};
             
-            if (canAccess) {
-                listHTML += `
-                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                        <div>
-                            <div class="font-bold">${name}</div>
-                            <div class="text-xs text-gray-500">
-                                作成: ${template.createdBy} (${new Date(template.createdAt).toLocaleDateString()})
-                                | 部門: ${deptLabel}
-                            </div>
-                        </div>
-                        <div class="space-x-2">
-                            <button class="btn-primary text-xs" onclick="loadTemplate('${name}')">読込</button>
-                            ${(userRole === 'admin' || template.createdBy === currentUser) ? 
-                                `<button class="bg-red-500 text-white px-2 py-1 rounded text-xs" onclick="deleteTemplate('${name}')">削除</button>` : 
-                                ''}
-                        </div>
-                    </div>
-                `;
-            }
+            const targetTasks = allTasks.filter(task => 
+                selectedDept === 'all' || task.department === selectedDept
+            );
+            
+            filteredTasks[day] = targetTasks;
+            filteredAssignments[day] = {};
+            
+            // 対応する割り当ても抽出
+            targetTasks.forEach((task, newIdx) => {
+                const originalIdx = allTasks.findIndex(t => 
+                    t.name === task.name && t.department === task.department && 
+                    t.startTime === task.startTime && t.endTime === task.endTime
+                );
+                if (originalIdx !== -1 && allAssignments[originalIdx]) {
+                    filteredAssignments[day][newIdx] = allAssignments[originalIdx];
+                }
+            });
         });
-        listHTML += '</div>';
-        
-        const modal = document.createElement('div');
-        modal.className = 'modal';
-        modal.id = 'templateModal';
-        modal.style.display = 'block';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold">テンプレート一覧</h2>
-                    <button onclick="closeModal('templateModal')" class="text-gray-500 hover:text-gray-700 text-2xl leading-none cursor-pointer">
-                        &times;
-                    </button>
-                </div>
-                ${listHTML}
-            </div>
-        `;
-        document.body.appendChild(modal);
+
+        const templateData = {
+            name: templateName,
+            tasks: filteredTasks,
+            assignments: filteredAssignments,
+            ceList: CE_LIST,
+            createdBy: currentUser,
+            createdAt: new Date().toISOString(),
+            department: selectedDept,
+            targetDepartment: selectedDept
+        };
+
+        if (isFirebaseReady && database) {
+            await database.ref(`${DATA_ROOT}/templates/${templateName}`).set(templateData);
+            showMessage(`テンプレート「${templateName}」を保存しました（${selectedDept}）`, 'success');
+            recordEditHistory('テンプレート保存', `${templateName} (${selectedDept})`);
+            loadTemplateListUI();
+            closeModal('templateSaveModal');
+        } else {
+            showMessage('Firebase接続が必要です', 'error');
+        }
     } catch (error) {
-        console.error('テンプレート読込エラー:', error);
-        showMessage('テンプレート読込に失敗しました', 'error');
+        console.error('テンプレート保存エラー:', error);
+        showMessage('テンプレート保存に失敗しました', 'error');
     }
 }
-
 async function loadTemplate(templateName) {
     if (userRole === 'viewer') {
         showMessage('テンプレート読込権限がありません', 'warning');
@@ -3759,6 +3913,97 @@ async function loadLoginStats() {
     }
 }
 
+async function showExpandedLoginStats() {
+    if (userRole !== 'admin') {
+        showMessage('管理者権限が必要です', 'warning');
+        return;
+    }
+
+    showModal('expandedLoginStatsModal');
+    
+    if (!isFirebaseReady || !database) return;
+    
+    try {
+        const snapshot = await database.ref(`${DATA_ROOT}/loginHistory`).limitToLast(200).once('value');
+        if (!snapshot.exists()) return;
+        
+        const loginEvents = [];
+        snapshot.forEach(child => {
+            loginEvents.unshift(child.val());
+        });
+        
+        // 詳細履歴表示（直近100件）
+        const historyContainer = document.getElementById('expandedLoginHistoryList');
+        if (historyContainer) {
+            historyContainer.innerHTML = loginEvents.slice(0, 100).map(event => `
+                <div class="p-2 bg-white bg-opacity-70 border rounded text-sm">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold">${event.user}</span>
+                        <span class="text-xs text-gray-500">${event.type}</span>
+                    </div>
+                    <div class="text-xs text-gray-600">
+                        ${new Date(event.at).toLocaleString()} | ${event.role}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // ユーザー別統計
+        const userStats = {};
+        const roleStats = {};
+        
+        loginEvents.forEach(event => {
+            if (event.type === 'login') {
+                userStats[event.user] = (userStats[event.user] || 0) + 1;
+                roleStats[event.role] = (roleStats[event.role] || 0) + 1;
+            }
+        });
+        
+        const statsContainer = document.getElementById('expandedLoginStats');
+        if (statsContainer) {
+            statsContainer.innerHTML = Object.entries(userStats)
+                .sort(([,a], [,b]) => b - a)
+                .map(([user, count]) => `
+                    <div class="p-2 bg-white bg-opacity-70 border rounded flex justify-between items-center">
+                        <span class="font-medium">${user}</span>
+                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm font-bold">${count}回</span>
+                    </div>
+                `).join('');
+        }
+        
+        // サマリ統計
+        const summaryContainer = document.getElementById('loginStatsSummary');
+        if (summaryContainer) {
+            const totalLogins = Object.values(userStats).reduce((sum, count) => sum + count, 0);
+            const uniqueUsers = Object.keys(userStats).length;
+            const avgLoginsPerUser = uniqueUsers > 0 ? Math.round(totalLogins / uniqueUsers * 10) / 10 : 0;
+            const mostActiveUser = Object.entries(userStats).reduce((max, [user, count]) => 
+                count > max[1] ? [user, count] : max, ['', 0]);
+            
+            summaryContainer.innerHTML = `
+                <div class="bg-blue-50 p-3 rounded">
+                    <div class="text-2xl font-bold text-blue-600">${totalLogins}</div>
+                    <div class="text-sm text-blue-800">総ログイン数</div>
+                </div>
+                <div class="bg-green-50 p-3 rounded">
+                    <div class="text-2xl font-bold text-green-600">${uniqueUsers}</div>
+                    <div class="text-sm text-green-800">利用ユーザー数</div>
+                </div>
+                <div class="bg-yellow-50 p-3 rounded">
+                    <div class="text-2xl font-bold text-yellow-600">${avgLoginsPerUser}</div>
+                    <div class="text-sm text-yellow-800">平均ログイン/人</div>
+                </div>
+                <div class="bg-purple-50 p-3 rounded">
+                    <div class="text-lg font-bold text-purple-600">${mostActiveUser[0]}</div>
+                    <div class="text-sm text-purple-800">最多利用（${mostActiveUser[1]}回）</div>
+                </div>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('拡大ログイン統計読込エラー:', error);
+    }
+}
 // グローバル関数の登録
 window.loadTemplate = loadTemplate;
 window.deleteTemplate = deleteTemplate;
