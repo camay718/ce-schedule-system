@@ -1258,7 +1258,7 @@ function setupAllEventListeners() {
         if (sidebar) sidebar.classList.toggle('expanded');
     }, 'toggleListener');
 
-    // ナビゲーションタブ（業務別タイムライン追加）
+    // ナビゲーションタブ
     const navTabs = [
         { id: 'scheduleTab', content: 'scheduleContent' },
         { id: 'departmentTimelineTab', content: 'departmentTimelineContent' },
@@ -1272,48 +1272,46 @@ function setupAllEventListeners() {
         setEventListenerSafely(element, 'click', () => showScreen(tab.content, tab.id), 'navListener');
     });
 
-    // 業務・スケジュール関連
-    const actionButtons = [
-        { id: 'addTaskButton', handler: () => openTaskModal('create') },
-        { id: 'clearTasksButton', handler: clearAllTasks },
-        { id: 'logoutButton', handler: handleLogout },
-        { id: 'saveTaskButton', handler: saveTaskFromModal },
-        { id: 'taskDeleteButton', handler: deleteTaskFromModal }
-    ];
-    
-    actionButtons.forEach(btn => {
-        const element = document.getElementById(btn.id);
-        setEventListenerSafely(element, 'click', btn.handler, 'actionListener');
+    // 業務・スケジュール関連（重複ID対策：querySelectorAllで両方に設定）
+    document.querySelectorAll('[id="addTaskButton"]').forEach((element, index) => {
+        if (element && !element.dataset[`addTaskListener_${index}`]) {
+            element.addEventListener('click', () => openTaskModal('create'));
+            element.dataset[`addTaskListener_${index}`] = 'true';
+        }
     });
 
+    document.querySelectorAll('[id="clearTasksButton"]').forEach((element, index) => {
+        if (element && !element.dataset[`clearTaskListener_${index}`]) {
+            element.addEventListener('click', clearAllTasks);
+            element.dataset[`clearTaskListener_${index}`] = 'true';
+        }
+    });
+
+    document.querySelectorAll('[id="logoutButton"]').forEach((element, index) => {
+        if (element && !element.dataset[`logoutListener_${index}`]) {
+            element.addEventListener('click', handleLogout);
+            element.dataset[`logoutListener_${index}`] = 'true';
+        }
+    });
+
+    // モーダル内ボタン（ID重複なし）
+    setEventListenerSafely(document.getElementById('saveTaskButton'), 'click', saveTaskFromModal, 'saveTaskListener');
+    setEventListenerSafely(document.getElementById('taskDeleteButton'), 'click', deleteTaskFromModal, 'deleteTaskListener');
+
     // 曜日タブ
-    document.querySelectorAll('.day-tab').forEach(btn => {
-        setEventListenerSafely(btn, 'click', () => switchDay(btn.getAttribute('data-day')), 'dayTabListener');
+    document.querySelectorAll('.day-tab').forEach((btn, index) => {
+        setEventListenerSafely(btn, 'click', () => switchDay(btn.getAttribute('data-day')), `dayTabListener_${index}`);
     });
 
     // 週開始日・テンプレート
-    const utilityButtons = [
-        { id: 'setWeekButton', handler: setWeekStartDate },
-        { id: 'templateSaveButton', handler: saveTemplate },
-        { id: 'templateLoadButton', handler: showTemplateList }
-    ];
-    
-    utilityButtons.forEach(btn => {
-        const element = document.getElementById(btn.id);
-        setEventListenerSafely(element, 'click', btn.handler, 'utilityListener');
-    });
+    setEventListenerSafely(document.getElementById('setWeekButton'), 'click', setWeekStartDate, 'setWeekListener');
+    setEventListenerSafely(document.getElementById('templateSaveButton'), 'click', saveTemplate, 'templateSaveListener');
+    setEventListenerSafely(document.getElementById('templateLoadButton'), 'click', showTemplateList, 'templateLoadListener');
 
     // CE・管理者
-    const managementButtons = [
-        { id: 'saveCEButton', handler: saveCEFromModal },
-        { id: 'ceManagementButton', handler: openCEManagement },
-        { id: 'copyHtmlButton', handler: copyFullHtml }
-    ];
-    
-    managementButtons.forEach(btn => {
-        const element = document.getElementById(btn.id);
-        setEventListenerSafely(element, 'click', btn.handler, 'managementListener');
-    });
+    setEventListenerSafely(document.getElementById('saveCEButton'), 'click', saveCEFromModal, 'saveCEListener');
+    setEventListenerSafely(document.getElementById('ceManagementButton'), 'click', openCEManagement, 'ceManageListener');
+    setEventListenerSafely(document.getElementById('copyHtmlButton'), 'click', copyFullHtml, 'copyHtmlListener');
     
     console.log('✅ イベントリスナー設定完了');
 }
@@ -1515,11 +1513,18 @@ function setupAllEventListeners() {
             loadTemplateListUI();
         }
 
-        function setupPermissions() {
-            const canEdit = ['editor', 'admin'].includes(userRole);
-            document.getElementById('addTaskButton').style.display = canEdit ? 'inline-flex' : 'none';
-            document.getElementById('clearTasksButton').style.display = canEdit ? 'inline-flex' : 'none';
-        }
+function setupPermissions() {
+    const canEdit = ['editor', 'admin'].includes(userRole);
+    
+    // 重複IDのボタンすべてに権限を適用
+    document.querySelectorAll('[id="addTaskButton"]').forEach(el => {
+        el.style.display = canEdit ? 'inline-flex' : 'none';
+    });
+    
+    document.querySelectorAll('[id="clearTasksButton"]').forEach(el => {
+        el.style.display = canEdit ? 'inline-flex' : 'none';
+    });
+}
         // ========= LOGIN FUNCTIONS END =========
 
         // ========= DATE AND WEEK FUNCTIONS START (行数: 1222-1280) =========
@@ -2563,7 +2568,7 @@ function generateTimeline() {
     container.innerHTML = '';
 
       const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    const dayLabels = ['月', '火', '水', '木', '金'];
+    const dayLabels = ['月', '火', '水', '木', '金', '土', '日'];
 
     // CEごとの曜日別割り当てを作成
     const ceMap = {};
@@ -2696,7 +2701,7 @@ function buildPlacementSummaryTable() {
     if (!container) return;
 
       const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    const dayLabels = ['月', '火', '水', '木', '金'];
+    const dayLabels = ['月', '火', '水', '木', '金', '土', '日'];
     const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
 
     // 各曜日の不在CE数を計算
@@ -3070,7 +3075,7 @@ function generateTimeSlotCharts() {
     const timeSlots = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
     const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
     const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-    const dayLabels = ['月', '火', '水', '木', '金'];
+    const dayLabels = ['月', '火', '水', '木', '金', '土', '日'];
 
     // 時間帯別配置人数（部門別）
     const ctxDept = document.getElementById('timeSlotChartDept');
