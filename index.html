@@ -587,13 +587,15 @@
     </div>
 </div>
 
-                <div class="mb-3">
-                    <div class="flex space-x-1">
+                 <div class="mb-3">
+                    <div class="flex flex-wrap space-x-1 gap-y-2">
                         <button class="day-tab active" data-day="monday">月曜 <span id="mondayDate" class="text-xs block"></span></button>
                         <button class="day-tab" data-day="tuesday">火曜 <span id="tuesdayDate" class="text-xs block"></span></button>
                         <button class="day-tab" data-day="wednesday">水曜 <span id="wednesdayDate" class="text-xs block"></span></button>
                         <button class="day-tab" data-day="thursday">木曜 <span id="thursdayDate" class="text-xs block"></span></button>
                         <button class="day-tab" data-day="friday">金曜 <span id="fridayDate" class="text-xs block"></span></button>
+                        <button class="day-tab" data-day="saturday">土曜 <span id="saturdayDate" class="text-xs block"></span></button>
+                        <button class="day-tab" data-day="sunday">日曜 <span id="sundayDate" class="text-xs block"></span></button>
                         <button class="day-tab" data-day="overview">全体</button>
                     </div>
                 </div>
@@ -604,6 +606,8 @@
                     <div id="wednesdayContent" class="day-content" style="display:none;"></div>
                     <div id="thursdayContent" class="day-content" style="display:none;"></div>
                     <div id="fridayContent" class="day-content" style="display:none;"></div>
+                    <div id="saturdayContent" class="day-content" style="display:none;"></div>
+                    <div id="sundayContent" class="day-content" style="display:none;"></div>
                     <div id="overviewContent" class="day-content" style="display:none;"></div>
                 </div>
 
@@ -814,6 +818,8 @@
                     <label class="flex items-center gap-1"><input type="checkbox" class="day-checkbox" value="wednesday"/>水</label>
                     <label class="flex items-center gap-1"><input type="checkbox" class="day-checkbox" value="thursday"/>木</label>
                     <label class="flex items-center gap-1"><input type="checkbox" class="day-checkbox" value="friday"/>金</label>
+                    <label class="flex items-center gap-1"><input type="checkbox" class="day-checkbox" value="saturday"/>土</label>
+                    <label class="flex items-center gap-1"><input type="checkbox" class="day-checkbox" value="sunday"/>日</label>
                 </div>
             </div>
             <div class="flex justify-end gap-3 mt-5">
@@ -892,6 +898,20 @@
                             <option value="非">非番</option><option value="休">休み</option><option value="出">出張</option>
                         </select>
                     </div>
+                    <div>
+                        <label class="block">土曜</label>
+                        <select id="ceStatus_saturday" class="w-full p-2 border rounded">
+                            <option value="">通常</option><option value="早">早出</option><option value="当">当直</option>
+                            <option value="非">非番</option><option value="休">休み</option><option value="出">出張</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block">日曜</label>
+                        <select id="ceStatus_sunday" class="w-full p-2 border rounded">
+                            <option value="">通常</option><option value="早">早出</option><option value="当">当直</option>
+                            <option value="非">非番</option><option value="休">休み</option><option value="出">出張</option>
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -965,38 +985,38 @@
         let editingTask = { mode: 'create', day: null, index: -1 };
 
         // データ管理
-        let globalTasksData = { monday: [], tuesday: [], wednesday: [], thursday: [], friday: [] };
-        let globalAssignmentsData = { monday: {}, tuesday: {}, wednesday: {}, thursday: {}, friday: {} };
+　　　    let globalTasksData = { monday: [], tuesday: [], wednesday: [], thursday: [], friday: [], saturday: [], sunday: [] };
+        let globalAssignmentsData = { monday: {}, tuesday: {}, wednesday: {}, thursday: {}, friday: {}, saturday: {}, sunday: {} };
 
         // CE一覧（27名）
         let CE_LIST = [
-            { name: '安孫子', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '八鍬', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '杉山', workType: 'HD', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '中村', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '石山', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '亀井', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '丸藤', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '三春', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '斎藤', workType: 'FLEX', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '田中', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '宇井', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '宇野沢', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '佐藤将志', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '庄司', workType: 'HD', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '小沼', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '設樂', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '武田', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '伊藤大晟', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '上松野', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '笹生', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '和田', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '伊藤大稀', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '佐藤千優', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '桑島', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '村田', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '小林', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } },
-            { name: '寒河江', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } }
+        　   { name: '安孫子', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '八鍬', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '杉山', workType: 'HD', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '中村', workType: 'OPE', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '石山', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '亀井', workType: 'OPE', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '丸藤', workType: 'OPE', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '三春', workType: 'ME', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '斎藤', workType: 'FLEX', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '田中', workType: 'ME', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '宇井', workType: 'OPE', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '宇野沢', workType: 'OPE', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '佐藤将志', workType: 'OPE', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '庄司', workType: 'HD', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '小沼', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '設樂', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '武田', workType: 'ME', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '伊藤大晟', workType: 'ME', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '上松野', workType: 'ME', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '笹生', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '和田', workType: 'OPE', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '伊藤大稀', workType: 'OPE', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '佐藤千優', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '桑島', workType: 'OPE', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '村田', workType: 'ME', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '小林', workType: 'OPE', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
+            { name: '寒河江', workType: 'ME', status:{ monday: '', tuesday: '', wednesday: '', thursday: '', friday: '', saturday: '', sunday: '' } },
         ];
 
         // 認証設定（部門情報を追加）
@@ -1044,7 +1064,7 @@ function clearAllTasks() {
         const ok = confirm(`${userDepartment}部門の全業務をクリアします。\n（他部門の業務は削除されません）\nよろしいですか？`);
         if (!ok) return;
 
-        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+        const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
         days.forEach(day => {
             const tasks = globalTasksData[day] || [];
             const assignments = globalAssignmentsData[day] || {};
@@ -1523,17 +1543,17 @@ function setupAllEventListeners() {
             showMessage('週開始日を設定しました', 'success');
         }
 
-        function updateDateDisplay() {
-            const dateIds = ['mondayDate', 'tuesdayDate', 'wednesdayDate', 'thursdayDate', 'fridayDate'];
-            dateIds.forEach((id, index) => {
-                const currentDate = new Date(weekStartDate);
-                currentDate.setDate(weekStartDate.getDate() + index);
-                const element = document.getElementById(id);
-                if (element) {
-                    element.textContent = `(${currentDate.getMonth() + 1}/${currentDate.getDate()})`;
-                }
-            });
+ function updateDateDisplay() {
+    const dateIds = ['mondayDate', 'tuesdayDate', 'wednesdayDate', 'thursdayDate', 'fridayDate', 'saturdayDate', 'sundayDate'];
+    dateIds.forEach((id, index) => {
+        const currentDate = new Date(weekStartDate);
+        currentDate.setDate(weekStartDate.getDate() + index);
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = `(${currentDate.getMonth() + 1}/${currentDate.getDate()})`;
         }
+    });
+}
 
         function switchDay(day) {
             currentActiveDay = day;
@@ -1616,7 +1636,7 @@ function showScreen(contentId, tabId) {
 
         // ========= TASK DISPLAY FUNCTIONS START (行数: 1372-1500) =========
         function renderDaySections() {
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+              const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
             const departments = ['機器管理・人工呼吸', '血液浄化', '不整脈', '心・カテーテル', '人工心肺・補助循環', '手術・麻酔'];
 
             days.forEach(day => {
@@ -1670,7 +1690,7 @@ function showScreen(contentId, tabId) {
         }
 
         function updateTaskDisplay() {
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+              const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
             const departments = ['機器管理・人工呼吸', '血液浄化', '不整脈', '心・カテーテル', '人工心肺・補助循環', '手術・麻酔'];
 
             // 既存タスクをクリア
@@ -1868,7 +1888,7 @@ function updatePlacementSummary() {
             const container = document.getElementById('overviewContent');
             if (!container) return;
 
-            const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+              const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
             const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜'];
             
             container.innerHTML = '';
@@ -2204,15 +2224,21 @@ function updateAllDisplays() {
     updatePlacementSummary();
     if (currentActiveDay === 'overview') generateWeeklyOverview();
     if (document.getElementById('analysisContent').style.display === 'block') {
-        setTimeout(generateAnalysis, 50);
+        generateAnalysis();
     }
     if (document.getElementById('departmentTimelineContent').style.display === 'block') {
-        setTimeout(generateDepartmentTimeline, 50);
+        generateDepartmentTimeline();
     }
     setupPermissions();
+    
+    // イベントリスナーを確実に再設定（重要：ボタン反応問題の解決）
+    setTimeout(() => {
+        setupAllEventListeners();
+        console.log('✅ イベントリスナーを再設定しました');
+    }, 100);
+    
     console.log('✅ 全表示更新完了');
 }
-
         function updateSyncTime() {
             const currentTime = new Date().toLocaleTimeString('ja-JP', { 
                 hour: '2-digit', 
@@ -2377,7 +2403,7 @@ function generateDepartmentTimeline() {
     }
     container.innerHTML = '';
 
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const dayLabels = ['月曜', '火曜', '水曜', '木曜', '金曜'];
     const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
 
@@ -2536,7 +2562,7 @@ function generateTimeline() {
     if (!container) return;
     container.innerHTML = '';
 
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const dayLabels = ['月', '火', '水', '木', '金'];
 
     // CEごとの曜日別割り当てを作成
@@ -2669,7 +2695,7 @@ function buildPlacementSummaryTable() {
     const container = document.getElementById('placementSummaryTable');
     if (!container) return;
 
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const dayLabels = ['月', '火', '水', '木', '金'];
     const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
 
@@ -2848,7 +2874,7 @@ function generateDepartmentChart() {
     }
 
     const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+      const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     
     const data = departments.map(dept => {
         let totalRequired = 0;
@@ -2910,7 +2936,7 @@ function generateIndividualChart() {
         chartInstances.individualChart.destroy();
     }
 
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const ceData = {};
 
     // 全CEの初期化
@@ -3043,7 +3069,7 @@ function generateIndividualChart() {
 function generateTimeSlotCharts() {
     const timeSlots = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
     const departments = ['血液浄化', '人工心肺・補助循環', '心・カテーテル', '手術・麻酔', '不整脈', '機器管理・人工呼吸'];
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     const dayLabels = ['月', '火', '水', '木', '金'];
 
     // 時間帯別配置人数（部門別）
@@ -3138,7 +3164,7 @@ function calculateTimeSlotData(timeSlots, groups, type) {
         groups.forEach(group => result[slot][group] = 0);
     });
 
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     
     days.forEach(day => {
         const tasks = globalTasksData[day] || [];
@@ -3335,7 +3361,7 @@ async function loadTemplate(templateName) {
 }
 
 function mergeTemplateIntoCurrent(templateTasks, templateAssignments) {
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     let addedCount = 0;
     let skippedCount = 0;
     
@@ -3434,7 +3460,7 @@ async function loadTemplateListUI() {
 // ヘルパー関数
 function checkOtherDepartmentTasks() {
     if (!userDepartment) return false;
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     for (const day of days) {
         const tasks = globalTasksData[day] || [];
         if (tasks.some(task => task.department !== userDepartment)) {
@@ -3457,7 +3483,7 @@ function openCEEdit(name, index) {
     document.getElementById('editCEName').value = ce.name;
     document.getElementById('editCEWorkType').value = ce.workType;
     
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     days.forEach(day => {
         const select = document.getElementById(`ceStatus_${day}`);
         if (select) {
@@ -3476,7 +3502,7 @@ function saveCEFromModal() {
     ce.workType = document.getElementById('editCEWorkType').value;
     
     if (!ce.status) ce.status = {};
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     days.forEach(day => {
         const select = document.getElementById(`ceStatus_${day}`);
         if (select) {
@@ -3608,7 +3634,7 @@ function deleteCEFromManagement(index) {
     CE_LIST.splice(index, 1);
     
     // 削除されたCEが割り当てられている業務から削除
-    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
     days.forEach(day => {
         const assignments = globalAssignmentsData[day] || {};
         for (const taskIndex in assignments) {
