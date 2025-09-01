@@ -12,7 +12,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     
     <!-- ========= CSS STYLES START (行数: 15-200) ========= -->
-    <style>
+   <style>
         :root {
             --primary-gradient: linear-gradient(135deg, #E8F5E8 0%, #D4F1D4 100%);
             --accent-color: #B8E6B8;
@@ -26,6 +26,7 @@
             color: var(--text-color);
             min-height: 100vh;
             overflow-x: hidden;
+            font-size: 14px;
         }
 
         .glassmorphism {
@@ -175,6 +176,7 @@
             transition: all 0.3s ease;
             width: 60px;
             overflow: hidden;
+            flex-shrink: 0;
         }
 
         .sidebar.expanded {
@@ -184,6 +186,7 @@
         .sidebar-text {
             opacity: 0;
             transition: opacity 0.3s ease;
+            white-space: nowrap;
         }
 
         .sidebar.expanded .sidebar-text {
@@ -238,6 +241,7 @@
             background: rgba(0,0,0,0.5);
             z-index: 1500;
             backdrop-filter: blur(2px);
+            overflow-y: auto;
         }
 
         .modal-content {
@@ -314,17 +318,67 @@
             font-weight: bold;
         }
 
+        /* 印刷用スタイル強化 */
         @media print {
-            .sidebar, .message, .modal, .btn-primary, .task-edit-btn { display: none !important; }
-            body { background: white !important; }
-            .glassmorphism { background: white !important; border: 1px solid #ccc !important; }
+            body { 
+                background: white !important; 
+                color: #000 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .sidebar, .message, .modal, .btn-primary, .task-edit-btn,
+            #addTaskButton, #clearTasksButton, #logoutButton,
+            #toggleSidebar, #setWeekButton, #templateSaveButton, #templateLoadButton,
+            .nav-tab, .sync-indicator, .sidebar-text { 
+                display: none !important; 
+            }
+            .glassmorphism { 
+                background: white !important; 
+                border: 1px solid #ccc !important; 
+                box-shadow: none !important;
+            }
+            .main-content { 
+                padding: 0 !important; 
+                margin: 0 !important;
+                width: 100% !important;
+            }
+            h2, h3 { color: #000 !important; }
+            table, th, td { border-color: #000 !important; }
+            .ce-item, .task-item, .department-area {
+                box-shadow: none !important;
+                border: 1px solid #ddd !important;
+                background: #f9f9f9 !important;
+            }
         }
 
+        /* モバイル対応強化 */
         @media (max-width: 768px) {
-            .sidebar { width: 0; }
-            .sidebar.expanded { width: 200px; }
-            .ce-grid { grid-template-columns: repeat(auto-fit, minmax(70px,1fr)); }
-            .modal-content { width: 95%; margin: 2% auto; }
+            body { font-size: 13px; }
+            .sidebar { width: 60px; }
+            .sidebar.expanded { width: min(250px, 80vw); }
+            .sidebar-text { opacity: 0; }
+            .sidebar.expanded .sidebar-text { opacity: 1; }
+            
+            .ce-grid { grid-template-columns: repeat(auto-fit, minmax(60px,1fr)); }
+            .modal-content { width: 95%; margin: 2% auto; padding: 16px; }
+            .flex-1.p-4 { padding: 10px; }
+            
+            .day-tab { padding: 8px 12px; font-size: 12px; }
+            h2 { font-size: 1.5rem; }
+            
+            .department-area {
+                min-height: auto;
+                padding: 10px;
+            }
+            .grid.grid-cols-1.md\:grid-cols-3.gap-4 {
+                grid-template-columns: 1fr;
+            }
+            .task-item { font-size: 13px; padding: 8px; }
+            .assigned-ce { font-size: 10px; padding: 1px 4px; }
+            
+            #timelineContainer {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
     <!-- ========= CSS STYLES END ========= -->
@@ -836,12 +890,13 @@
         const DATA_ROOT = 'ceScheduleSystem/v1';
         // ========= FIREBASE CONFIG END =========
 
-        // ========= GLOBAL VARIABLES START (行数: 922-950) =========
+         // ========= GLOBAL VARIABLES START (行数: 922-950) =========
         let database = null;
         let auth = null;
         let isFirebaseReady = false;
         let currentUser = null;
         let userRole = null;
+        let userDepartment = null; // ログインユーザーの部門を追加
         let currentActiveDay = 'monday';
         let weekStartDate = new Date();
         let editingCEIndex = -1;
@@ -882,17 +937,17 @@
             { name: '寒河江', workType: 'ME', status: { monday: '', tuesday: '', wednesday: '', thursday: '', friday: '' } }
         ];
 
-        // 認証設定
+        // 認証設定（部門情報を追加）
         const AUTH_CREDENTIALS = {
-            'スタッフ': { type: 'name', role: 'viewer' },
-            '手術・麻酔': { code: 'secure_SurgAnest_6917_ce_system', role: 'editor' },
-            'MEセンター': { code: 'secure_MEcenter_6994_ce_system', role: 'editor' },
-            '血液浄化': { code: 'secure_Hemodialysis_6735_ce_system', role: 'editor' },
-            '不整脈': { code: 'secure_Arrhythm_6551_ce_system', role: 'editor' },
-            '人工心肺・補助循環': { code: 'secure_CpbEcmo_6288_ce_system', role: 'editor' },
-            '心・カテーテル': { code: 'secure_CardCath_6925_ce_system', role: 'editor' },
-            'モニター': { code: 'secure_CEmonitor_1122_ce_system', role: 'monitor' },
-            '管理者': { code: 'secure_CEadmin_5711_ce_system', role: 'admin' }
+            'スタッフ': { type: 'name', role: 'viewer', department: null },
+            '手術・麻酔': { code: 'secure_SurgAnest_6917_ce_system', role: 'editor', department: '手術・麻酔' },
+            'MEセンター': { code: 'secure_MEcenter_6994_ce_system', role: 'editor', department: '機器管理・人工呼吸' },
+            '血液浄化': { code: 'secure_Hemodialysis_6735_ce_system', role: 'editor', department: '血液浄化' },
+            '不整脈': { code: 'secure_Arrhythm_6551_ce_system', role: 'editor', department: '不整脈' },
+            '人工心肺・補助循環': { code: 'secure_CpbEcmo_6288_ce_system', role: 'editor', department: '人工心肺・補助循環' },
+            '心・カテーテル': { code: 'secure_CardCath_6925_ce_system', role: 'editor', department: '心・カテーテル' },
+            'モニター': { code: 'secure_CEmonitor_1122_ce_system', role: 'monitor', department: null },
+            '管理者': { code: 'secure_CEadmin_5711_ce_system', role: 'admin', department: null }
         };
         // ========= GLOBAL VARIABLES END =========
 
@@ -907,7 +962,7 @@
             console.log('🔄 CEスケジュール管理システム Ver.1 初期化開始');
             try {
                 setupAllEventListeners();
-                handleUserIdChange(); // 初期表示を確実に設定
+                handleUserIdChange();
                 initializeFirebase();
                 tryRestoreFromLocalStorage();
                 restoreLoginState();
@@ -1080,7 +1135,7 @@
         }
         // ========= EVENT LISTENERS END =========
 
-        // ========= LOGIN FUNCTIONS START (行数: 1122-1220) =========
+         // ========= LOGIN FUNCTIONS START (行数: 1122-1220) =========
         function handleUserIdChange() {
             console.log('🔄 ユーザーID変更処理');
             const userId = document.getElementById('userId');
@@ -1117,10 +1172,6 @@
             const nameInput = document.getElementById('nameInput').value.trim();
             const securityInput = document.getElementById('securityInput').value;
 
-            console.log('ユーザーID:', userId);
-            console.log('名前入力:', nameInput);
-            console.log('セキュリティ入力:', securityInput ? '入力あり' : '入力なし');
-
             if (!userId) {
                 showMessage('ユーザーを選択してください', 'warning');
                 return;
@@ -1142,34 +1193,28 @@
                 }
                 isValid = true;
                 displayName = nameInput;
-                console.log('✅ 名前認証成功:', nameInput);
             } else {
                 if (!securityInput) {
                     showMessage('セキュリティコードを入力してください', 'warning');
                     return;
                 }
                 isValid = securityInput === credential.code;
-                if (isValid) {
-                    displayName = userId;
-                    console.log('✅ セキュリティコード認証成功:', userId);
-                } else {
-                    console.log('❌ セキュリティコード認証失敗');
-                }
             }
 
             if (isValid) {
                 userRole = credential.role;
                 currentUser = displayName;
+                userDepartment = credential.department; // 部門情報を保存
                 
                 // ログイン状態保存（24時間有効）
                 const loginExpiry = Date.now() + (24 * 60 * 60 * 1000);
                 localStorage.setItem('ceSystemLoggedInUser', JSON.stringify({
                     id: currentUser,
                     role: userRole,
+                    department: userDepartment,
                     loginTime: new Date().toISOString()
                 }));
                 localStorage.setItem('ceSystemLoginExpiry', loginExpiry.toString());
-                console.log('✅ ログイン情報を保存（24時間有効）');
                 
                 showMainInterface();
                 recordEditHistory('ログイン', `${userId}として入室`);
@@ -1189,6 +1234,7 @@
                 
                 currentUser = null;
                 userRole = null;
+                userDepartment = null;
                 
                 localStorage.removeItem('ceSystemLoggedInUser');
                 localStorage.removeItem('ceSystemLoginExpiry');
@@ -1196,7 +1242,6 @@
                 document.getElementById('mainInterface').style.display = 'none';
                 document.getElementById('loginScreen').style.display = 'flex';
                 
-                // フォームリセット
                 document.getElementById('userId').value = '';
                 document.getElementById('nameInput').value = '';
                 document.getElementById('securityInput').value = '';
@@ -1219,7 +1264,7 @@
                         const parsedUser = JSON.parse(savedUser);
                         currentUser = parsedUser.id;
                         userRole = parsedUser.role;
-                        console.log('✅ ログイン状態を復元:', currentUser);
+                        userDepartment = parsedUser.department;
                         showMainInterface();
                         showMessage(`お疲れ様です、${currentUser}さん！`, 'info');
                         if (isFirebaseReady) loadAllFromFirebase();
@@ -1227,7 +1272,6 @@
                     } else {
                         localStorage.removeItem('ceSystemLoggedInUser');
                         localStorage.removeItem('ceSystemLoginExpiry');
-                        console.log('🕒 ログイン期限切れ');
                     }
                 }
                 
@@ -1242,7 +1286,7 @@
 
         function setupAutoLogout() {
             let inactivityTimer;
-            const INACTIVITY_TIME = 8 * 60 * 60 * 1000; // 8時間
+            const INACTIVITY_TIME = 8 * 60 * 60 * 1000;
 
             function resetInactivityTimer() {
                 clearTimeout(inactivityTimer);
@@ -1251,6 +1295,7 @@
                         recordLoginEvent('auto_logout');
                         currentUser = null;
                         userRole = null;
+                        userDepartment = null;
                         localStorage.removeItem('ceSystemLoggedInUser');
                         localStorage.removeItem('ceSystemLoginExpiry');
                         document.getElementById('mainInterface').style.display = 'none';
@@ -1287,7 +1332,7 @@
         }
 
         function setupPermissions() {
-            const canEdit = ['editor', 'monitor', 'admin'].includes(userRole);
+            const canEdit = ['editor', 'admin'].includes(userRole);
             document.getElementById('addTaskButton').style.display = canEdit ? 'inline-flex' : 'none';
             document.getElementById('clearTasksButton').style.display = canEdit ? 'inline-flex' : 'none';
         }
@@ -1777,62 +1822,59 @@
         // ========= TASK MODAL FUNCTIONS END =========
 
         // ========= CE ASSIGNMENT FUNCTIONS START (行数: 1682-1740) =========
-        function assignCEToTask(day, taskIndex, ceName) {
-            if (userRole === 'viewer') return;
-            
-            if (!globalAssignmentsData[day]) globalAssignmentsData[day] = {};
-            if (!globalAssignmentsData[day][taskIndex]) globalAssignmentsData[day][taskIndex] = [];
-            
-            if (!globalAssignmentsData[day][taskIndex].includes(ceName)) {
-                globalAssignmentsData[day][taskIndex].push(ceName);
-                updateTaskDisplay();
-                updatePlacementSummary();
-                saveAllToFirebase();
-                recordEditHistory('CE配置', `${day}に${ceName}を配置`);
-                showMessage(`${ceName}を配置しました`, 'success');
-            } else {
-                showMessage(`${ceName}は既に配置されています`, 'info');
-            }
-        }
+        // ========== CE配置・削除時の部門確認 ==========
+async function assignCEToTask(day, taskIndex, ceName) {
+    if (userRole === 'viewer') return;
+    
+    const task = (globalTasksData[day] || [])[taskIndex];
+    if (!task) return;
+    
+    // 部門越え操作の確認
+    if (userRole === 'editor' && userDepartment && task.department !== userDepartment) {
+        const ok = confirm(`他部門（${task.department}）の業務にCEを配置します。\n実行しますか？`);
+        if (!ok) return;
+    }
 
-        function removeCEAssignment(day, taskIndex, ceName) {
-            if (userRole === 'viewer') return;
-            
-            if (globalAssignmentsData[day] && globalAssignmentsData[day][taskIndex]) {
-                const index = globalAssignmentsData[day][taskIndex].indexOf(ceName);
-                if (index > -1) {
-                    globalAssignmentsData[day][taskIndex].splice(index, 1);
-                    updateTaskDisplay();
-                    updatePlacementSummary();
-                    saveAllToFirebase();
-                    recordEditHistory('CE配置削除', `${day}から${ceName}を削除`);
-                    showMessage(`${ceName}を削除しました`, 'success');
-                }
-            }
-        }
-        window.removeCEAssignment = removeCEAssignment;
+    if (!globalAssignmentsData[day]) globalAssignmentsData[day] = {};
+    if (!globalAssignmentsData[day][taskIndex]) globalAssignmentsData[day][taskIndex] = [];
+    
+    if (!globalAssignmentsData[day][taskIndex].includes(ceName)) {
+        globalAssignmentsData[day][taskIndex].push(ceName);
+        updateTaskDisplay();
+        updatePlacementSummary();
+        saveAllToFirebase();
+        recordEditHistory('CE配置', `${day}に${ceName}を配置`);
+        showMessage(`${ceName}を配置しました`, 'success');
+    } else {
+        showMessage(`${ceName}は既に配置されています`, 'info');
+    }
+}
 
-        function clearAllTasks() {
-            if (userRole === 'viewer') {
-                showMessage('編集権限がありません', 'warning');
-                return;
-            }
-            
-            if (confirm('全ての業務をクリアしてもよろしいですか？')) {
-                globalTasksData = {
-                    monday: [], tuesday: [], wednesday: [], thursday: [], friday: []
-                };
-                globalAssignmentsData = {
-                    monday: {}, tuesday: {}, wednesday: {}, thursday: {}, friday: {}
-                };
-                
-                updateTaskDisplay();
-                updatePlacementSummary();
-                saveAllToFirebase();
-                recordEditHistory('全業務クリア');
-                showMessage('全ての業務をクリアしました', 'success');
-            }
+async function removeCEAssignment(day, taskIndex, ceName) {
+    if (userRole === 'viewer') return;
+
+    const task = (globalTasksData[day] || [])[taskIndex];
+    if (!task) return;
+    
+    // 部門越え操作の確認
+    if (userRole === 'editor' && userDepartment && task.department !== userDepartment) {
+        const ok = confirm(`他部門（${task.department}）の業務からCEを削除します。\n実行しますか？`);
+        if (!ok) return;
+    }
+    
+    if (globalAssignmentsData[day] && globalAssignmentsData[day][taskIndex]) {
+        const index = globalAssignmentsData[day][taskIndex].indexOf(ceName);
+        if (index > -1) {
+            globalAssignmentsData[day][taskIndex].splice(index, 1);
+            updateTaskDisplay();
+            updatePlacementSummary();
+            saveAllToFirebase();
+            recordEditHistory('CE配置削除', `${day}から${ceName}を削除`);
+            showMessage(`${ceName}を削除しました`, 'success');
         }
+    }
+}
+window.removeCEAssignment = removeCEAssignment;
         // ========= CE ASSIGNMENT FUNCTIONS END =========
 
         // ========= DATA MANAGEMENT START (行数: 1742-1820) =========
@@ -2548,16 +2590,6 @@ function generateIndividualChart() {
 
     const labels = sortedData.map(([name]) => name);
     const data = sortedData.map(([,hours]) => hours);
-    
-    // 色分け（労働時間に応じて）
-    const backgroundColors = data.map(hours => {
-        if (hours === 0) return 'rgba(200, 200, 200, 0.6)'; // グレー：未配置
-        if (hours >= 30) return 'rgba(244, 67, 54, 0.6)';   // 赤：過労働
-        if (hours >= 20) return 'rgba(255, 193, 7, 0.6)';   // 黄：多い
-        return 'rgba(76, 175, 80, 0.6)';                    // 緑：適正
-    });
-    
-    const borderColors = backgroundColors.map(color => color.replace('0.6', '1'));
 
     chartInstances.individualChart = new Chart(ctx, {
         type: 'bar',
@@ -2566,8 +2598,8 @@ function generateIndividualChart() {
             datasets: [{
                 label: '実労働時間(時間)',
                 data: data,
-                backgroundColor: backgroundColors,
-                borderColor: borderColors,
+                backgroundColor: 'rgba(76, 175, 80, 0.6)',
+                borderColor: 'rgba(76, 175, 80, 1)',
                 borderWidth: 1
             }]
         },
@@ -2581,6 +2613,16 @@ function generateIndividualChart() {
                     title: {
                         display: true,
                         text: '時間（重複除外済み）'
+                    }
+                },
+                y: {
+                    ticks: {
+                        autoSkip: false, // 全てのラベルを表示
+                        maxRotation: 0,
+                        minRotation: 0,
+                        font: {
+                            size: 11
+                        }
                     }
                 }
             },
@@ -2739,7 +2781,7 @@ function calculateTimeSlotData(timeSlots, groups, type) {
     return result;
 }
 
-// ========== テンプレート機能 ==========
+// ========== テンプレート機能（部門別権限制御対応） ==========
 async function saveTemplate() {
     if (userRole === 'viewer') {
         showMessage('テンプレート保存権限がありません', 'warning');
@@ -2751,6 +2793,16 @@ async function saveTemplate() {
         showMessage('テンプレート名を入力してください', 'warning');
         return;
     }
+
+    // 部門別制限の確認（管理者以外）
+    if (userRole === 'editor' && userDepartment) {
+        const hasOtherDeptTasks = checkOtherDepartmentTasks();
+        if (hasOtherDeptTasks) {
+            if (!confirm(`他部門の業務も含まれています。\n全ての業務をテンプレートとして保存しますか？\n（${userDepartment}部門のみ保存したい場合は「キャンセル」してください）`)) {
+                return;
+            }
+        }
+    }
     
     const templateData = {
         name: templateName.trim(),
@@ -2758,14 +2810,15 @@ async function saveTemplate() {
         assignments: JSON.parse(JSON.stringify(globalAssignmentsData)),
         ceList: JSON.parse(JSON.stringify(CE_LIST)),
         createdBy: currentUser,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        department: userRole === 'admin' ? 'all' : userDepartment
     };
     
     if (isFirebaseReady && database) {
         try {
             await database.ref(`${DATA_ROOT}/templates/${templateName.trim()}`).set(templateData);
             showMessage('テンプレートを保存しました', 'success');
-            recordEditHistory('テンプレート保存', templateName.trim());
+            recordEditHistory('テンプレート保存', `${templateName.trim()} (${templateData.department})`);
             loadTemplateListUI();
         } catch (error) {
             console.error('テンプレート保存エラー:', error);
@@ -2795,22 +2848,31 @@ async function showTemplateList() {
         let listHTML = '<div class="space-y-2">';
         templateList.forEach(name => {
             const template = templates[name];
-            listHTML += `
-                <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
-                    <div>
-                        <div class="font-bold">${name}</div>
-                        <div class="text-xs text-gray-500">作成: ${template.createdBy} (${new Date(template.createdAt).toLocaleDateString()})</div>
+            const canAccess = userRole === 'admin' || template.department === 'all' || template.department === userDepartment;
+            const deptLabel = template.department === 'all' ? '全部門' : (template.department || '不明');
+            
+            if (canAccess) {
+                listHTML += `
+                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                        <div>
+                            <div class="font-bold">${name}</div>
+                            <div class="text-xs text-gray-500">
+                                作成: ${template.createdBy} (${new Date(template.createdAt).toLocaleDateString()})
+                                | 部門: ${deptLabel}
+                            </div>
+                        </div>
+                        <div class="space-x-2">
+                            <button class="btn-primary text-xs" onclick="loadTemplate('${name}')">読込</button>
+                            ${(userRole === 'admin' || template.createdBy === currentUser) ? 
+                                `<button class="bg-red-500 text-white px-2 py-1 rounded text-xs" onclick="deleteTemplate('${name}')">削除</button>` : 
+                                ''}
+                        </div>
                     </div>
-                    <div class="space-x-2">
-                        <button class="btn-primary text-xs" onclick="loadTemplate('${name}')">読込</button>
-                        <button class="bg-red-500 text-white px-2 py-1 rounded text-xs" onclick="deleteTemplate('${name}')">削除</button>
-                    </div>
-                </div>
-            `;
+                `;
+            }
         });
         listHTML += '</div>';
         
-        // 固有IDを持つテンプレート用モーダル
         const modal = document.createElement('div');
         modal.className = 'modal';
         modal.id = 'templateModal';
@@ -2819,7 +2881,7 @@ async function showTemplateList() {
             <div class="modal-content">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-bold">テンプレート一覧</h2>
-                    <button onclick="document.getElementById('templateModal').remove()" class="text-gray-500 hover:text-gray-700">
+                    <button onclick="closeModal('templateModal')" class="text-gray-500 hover:text-gray-700">
                         <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
@@ -2839,39 +2901,44 @@ async function loadTemplate(templateName) {
         return;
     }
     
+    // 他部門業務への影響確認（管理者以外）
+    if (userRole === 'editor' && userDepartment) {
+        const hasOtherDeptTasks = checkOtherDepartmentTasks();
+        if (hasOtherDeptTasks) {
+            const confirmMsg = `他部門の業務やCE配置が存在します。\nテンプレート「${templateName}」を読み込むと、これらも影響を受ける可能性があります。\n\n続行しますか？`;
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+        }
+    }
+    
     if (!confirm(`テンプレート「${templateName}」を読み込みますか？\n現在のスケジュールに業務が追加されます。\n（既存の業務は削除されません）`)) {
         return;
     }
     
     try {
         const snapshot = await database.ref(`${DATA_ROOT}/templates/${templateName}`).once('value');
-        if (snapshot.exists()) {
-            const template = snapshot.val();
-            
-            // テンプレートの業務と割り当てを現在のスケジュールにマージ（追加）
-            mergeTemplateIntoCurrent(template.tasks, template.assignments);
-            
-            // CEリストはテンプレートで上書き
-            CE_LIST = template.ceList || CE_LIST;
-
-            updateAllDisplays();
-            
-            // イベントリスナーを再設定（重要：テンプレート読込後の不具合解決）
-            setTimeout(() => {
-                setupAllEventListeners();
-                console.log('✅ イベントリスナーを再設定しました');
-            }, 100);
-            
-            await saveAllToFirebase();
-            showMessage('テンプレートを読み込みました', 'success');
-            recordEditHistory('テンプレート読込', templateName);
-            
-            // テンプレートモーダルのみ閉じる
-            const modal = document.getElementById('templateModal');
-            if (modal) modal.remove();
-        } else {
+        if (!snapshot.exists()) {
             showMessage('テンプレートが見つかりません', 'error');
+            return;
         }
+        
+        const template = snapshot.val();
+        
+        // テンプレートの業務と割り当てを現在のスケジュールにマージ（追加）
+        mergeTemplateIntoCurrent(template.tasks, template.assignments);
+        
+        // CEリストはテンプレートで上書き
+        CE_LIST = template.ceList || CE_LIST;
+
+        updateAllDisplays();
+        await saveAllToFirebase();
+        
+        showMessage('テンプレートを読み込みました', 'success');
+        recordEditHistory('テンプレート読込', `${templateName} (${template.department})`);
+        
+        closeModal('templateModal');
+        
     } catch (error) {
         console.error('テンプレート読込エラー:', error);
         showMessage('テンプレート読込に失敗しました', 'error');
@@ -2917,7 +2984,7 @@ async function deleteTemplate(templateName) {
         await database.ref(`${DATA_ROOT}/templates/${templateName}`).remove();
         showMessage('テンプレートを削除しました', 'success');
         recordEditHistory('テンプレート削除', templateName);
-        showTemplateList(); // 一覧を再表示
+        showTemplateList();
     } catch (error) {
         console.error('テンプレート削除エラー:', error);
         showMessage('テンプレート削除に失敗しました', 'error');
@@ -2940,15 +3007,37 @@ async function loadTemplateListUI() {
         const templates = snapshot.val();
         const templateList = Object.keys(templates);
         
-        container.innerHTML = templateList.map(name => `
-            <div class="flex justify-between items-center p-1 bg-gray-100 rounded text-xs">
-                <span>${name}</span>
-                <button class="text-blue-600 hover:text-blue-800" onclick="loadTemplate('${name}')">読込</button>
-            </div>
-        `).join('');
+        const accessibleTemplates = templateList.filter(name => {
+            const template = templates[name];
+            return userRole === 'admin' || template.department === 'all' || template.department === userDepartment;
+        });
+        
+        container.innerHTML = accessibleTemplates.map(name => {
+            const template = templates[name];
+            const deptLabel = template.department === 'all' ? '全' : (template.department || '').substring(0, 2);
+            return `
+                <div class="flex justify-between items-center p-1 bg-gray-100 rounded text-xs">
+                    <span title="${template.department || '不明'}">${name} [${deptLabel}]</span>
+                    <button class="text-blue-600 hover:text-blue-800" onclick="loadTemplate('${name}')">読込</button>
+                </div>
+            `;
+        }).join('');
     } catch (error) {
         console.error('テンプレート一覧読込エラー:', error);
     }
+}
+
+// ヘルパー関数
+function checkOtherDepartmentTasks() {
+    if (!userDepartment) return false;
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    for (const day of days) {
+        const tasks = globalTasksData[day] || [];
+        if (tasks.some(task => task.department !== userDepartment)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 // ========== CE編集機能 ==========
