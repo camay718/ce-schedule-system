@@ -1272,19 +1272,31 @@ function setupAllEventListeners() {
         setEventListenerSafely(element, 'click', () => showScreen(tab.content, tab.id), 'navListener');
     });
 
-    // 業務・スケジュール関連
-    const actionButtons = [
-        { id: 'addTaskButton', handler: () => openTaskModal('create') },
-        { id: 'clearTasksButton', handler: clearAllTasks },
-        { id: 'logoutButton', handler: handleLogout },
-        { id: 'saveTaskButton', handler: saveTaskFromModal },
-        { id: 'taskDeleteButton', handler: deleteTaskFromModal }
-    ];
+// 業務・スケジュール関連
+// 重複IDの問題を解決するため、addTaskButtonは全ての要素に対してイベントリスナーを設定
+document.querySelectorAll('#addTaskButton').forEach((button, index) => {
+    // 既存のリスナーを削除してから新しいリスナーを追加
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
     
-    actionButtons.forEach(btn => {
-        const element = document.getElementById(btn.id);
-        setEventListenerSafely(element, 'click', btn.handler, 'actionListener');
+    newButton.addEventListener('click', () => {
+        console.log(`業務追加ボタン${index + 1}がクリックされました`);
+        openTaskModal('create');
     });
+});
+
+// その他のボタン（重複IDがないもの）
+const actionButtons = [
+    { id: 'clearTasksButton', handler: clearAllTasks },
+    { id: 'logoutButton', handler: handleLogout },
+    { id: 'saveTaskButton', handler: saveTaskFromModal },
+    { id: 'taskDeleteButton', handler: deleteTaskFromModal }
+];
+
+actionButtons.forEach(btn => {
+    const element = document.getElementById(btn.id);
+    setEventListenerSafely(element, 'click', btn.handler, 'actionListener');
+});
 
     // 曜日タブ
     document.querySelectorAll('.day-tab').forEach(btn => {
@@ -1515,11 +1527,19 @@ function setupAllEventListeners() {
             loadTemplateListUI();
         }
 
-        function setupPermissions() {
-            const canEdit = ['editor', 'admin'].includes(userRole);
-            document.getElementById('addTaskButton').style.display = canEdit ? 'inline-flex' : 'none';
-            document.getElementById('clearTasksButton').style.display = canEdit ? 'inline-flex' : 'none';
-        }
+ function setupPermissions() {
+    const canEdit = ['editor', 'admin'].includes(userRole);
+    
+    // 重複IDに対応：全てのaddTaskButtonを制御
+    document.querySelectorAll('#addTaskButton').forEach(button => {
+        button.style.display = canEdit ? 'inline-flex' : 'none';
+    });
+    
+    // clearTasksButtonとlogoutButtonも同様に処理（将来の重複ID対策）
+    document.querySelectorAll('#clearTasksButton').forEach(button => {
+        button.style.display = canEdit ? 'inline-flex' : 'none';
+    });
+}
         // ========= LOGIN FUNCTIONS END =========
 
         // ========= DATE AND WEEK FUNCTIONS START (行数: 1222-1280) =========
@@ -2232,10 +2252,10 @@ function updateAllDisplays() {
     setupPermissions();
     
     // イベントリスナーを確実に再設定（重要：ボタン反応問題の解決）
-    setTimeout(() => {
-        setupAllEventListeners();
-        console.log('✅ イベントリスナーを再設定しました');
-    }, 100);
+setTimeout(() => {
+    setupAllEventListeners();
+    console.log('✅ イベントリスナーを再設定しました');
+}, 300); // 100msから300msに変更
     
     console.log('✅ 全表示更新完了');
 }
